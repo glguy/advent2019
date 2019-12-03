@@ -14,7 +14,7 @@ module Main (main) where
 import           Advent (Parser, sepBy, getParsedLines, anySingle, number)
 import           Advent.Coord (Coord)
 import qualified Advent.Coord as Coord
-import           Control.Applicative (liftA2)
+import           Control.Applicative (liftA2, (<|>))
 import           Data.List (scanl', foldl1')
 import           Data.Map (Map)
 import qualified Data.Map as Map
@@ -22,11 +22,17 @@ import qualified Data.Map as Map
 -- $setup
 -- >>> let parse = Data.Either.fromRight undefined . Advent.parseLines parseSteps . unlines
 
-data Motion = Motion Char Int
+data Motion = Motion Direction Int
   deriving Show
 
+data Direction = U | L | D | R
+  deriving Show
+
+parseDirection :: Parser Direction
+parseDirection = U <$ "U" <|> D <$ "D" <|> R <$ "R" <|> L <$ "L"
+
 parseSteps :: Parser [Motion]
-parseSteps = liftA2 Motion anySingle number `sepBy` ","
+parseSteps = liftA2 Motion parseDirection number `sepBy` ","
 
 main :: IO ()
 main =
@@ -84,13 +90,12 @@ generatePath c xs
 
 -- | Convert a direction letter to a coordinate update function.
 --
--- >>> todir 'R' Coord.origin
+-- >>> todir R Coord.origin
 -- C 0 1
--- >>> todir 'D' Coord.origin
+-- >>> todir D Coord.origin
 -- C 1 0
-todir :: Char -> Coord -> Coord
-todir 'L' = Coord.left
-todir 'R' = Coord.right
-todir 'U' = Coord.above
-todir 'D' = Coord.below
-todir c   = error ("todir: bad direction " ++ show c)
+todir :: Direction -> Coord -> Coord
+todir L = Coord.left
+todir R = Coord.right
+todir U = Coord.above
+todir D = Coord.below
