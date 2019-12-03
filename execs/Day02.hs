@@ -11,7 +11,7 @@ Maintainer  : emertens@gmail.com
 -}
 module Main (main) where
 
-import           Advent (getParsedLines, number, sepBy)
+import           Advent (Parser, getParsedLines, number, sepBy)
 import           Data.Sequence (Seq)
 import qualified Data.Sequence as Seq
 
@@ -26,9 +26,12 @@ new = Seq.fromList
 set :: Int -> Int -> Memory -> Memory
 set i v m = v `seq` Seq.update i v m
 
+memoryParser :: Parser Memory
+memoryParser = new <$> number `sepBy` ","
+
 main :: IO ()
 main =
-  do [pgm] <- getParsedLines 2 (new <$> number `sepBy` ",")
+  do [pgm] <- getParsedLines 2 memoryParser
      print (startup 12 2 pgm)
      print (head [ 100 * noun + verb
                  | noun <- [0..99]
