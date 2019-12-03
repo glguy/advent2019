@@ -31,7 +31,7 @@ main =
 -- | Generate a map of the coordinates a path visits. Each coordinate is
 -- indexed by the number of steps it took to get to that location.
 locations :: [(Char, Int)] -> Map C.Coord Int
-locations steps = Map.fromList (zip (generatePath C.origin steps) [1..])
+locations steps = Map.fromListWith min (zip (generatePath C.origin steps) [1..])
 
 -- | Generate the list of coordinates visited by a list of steps.
 generatePath :: C.Coord -> [(Char, Int)] -> [C.Coord]
