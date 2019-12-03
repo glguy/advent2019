@@ -19,6 +19,9 @@ import           Data.List (scanl', foldl1')
 import           Data.Map (Map)
 import qualified Data.Map as Map
 
+-- $setup
+-- >>> let parse = Data.Either.fromRight undefined . Advent.parseLines parseSteps . unlines
+
 data Motion = Motion Char Int
   deriving Show
 
@@ -34,13 +37,13 @@ main =
 -- | Given the input file parsed as lists of lists of motions, compute the
 -- nearest distance to origin and minimum sum steps to intersection.
 --
--- >>> let check = fmap answers . Advent.parseLines parseSteps . unlines
+-- >>> let check = answers . parse
 -- >>> check ["R8,U5,L5,D3","U7,R6,D4,L4"]
--- Right (6,30)
+-- (6,30)
 -- >>> check ["R75,D30,R83,U83,L12,D49,R71,U7,L72","U62,R66,U55,R34,D71,R55,D58,R83"]
--- Right (159,610)
+-- (159,610)
 -- >>> check ["R98,U47,R26,D63,R33,U87,L62,D20,R33,U53,R51","U98,R91,D20,R16,D67,R40,U7,R15,U6,R7"]
--- Right (135,410)
+-- (135,410)
 answers :: [[Motion]] -> (Int, Int)
 answers xs = (nearestDistanceToOrigin intersections, minimum intersections)
   where
@@ -55,9 +58,9 @@ nearestDistanceToOrigin = minimum . map (Coord.manhattan Coord.origin) . Map.key
 -- among all of the paths. The value at each location is the sum of the
 -- number of steps taken along each of the paths to get to that point.
 --
--- >>> let check = fmap pathIntersections . Advent.parseLines parseSteps . unlines
+-- >>> let check = pathIntersections . parse
 -- >>> check ["R8,U5,L5,D3","U7,R6,D4,L4"]
--- Right (fromList [(C (-5) 6,30),(C (-3) 3,40)])
+-- fromList [(C (-5) 6,30),(C (-3) 3,40)]
 pathIntersections :: [[Motion]] -> Map Coord Int
 pathIntersections = foldl1' (Map.intersectionWith (+)) . map locations
 
