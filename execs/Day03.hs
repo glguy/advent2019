@@ -11,11 +11,11 @@ Maintainer  : emertens@gmail.com
 -}
 module Main (main) where
 
-import           Advent (Parser, sepBy, getParsedLines, anySingle, number)
+import           Advent              (Parser, getParsedLines, number, sepBy)
 import           Control.Applicative (liftA2)
-import           Data.Foldable (asum)
-import           Data.List (scanl', foldl1')
-import           Data.Map (Map)
+import           Data.Foldable       (asum)
+import           Data.List           (foldl1')
+import           Data.Map            (Map)
 import qualified Data.Map as Map
 
 -- $setup
@@ -24,22 +24,35 @@ import qualified Data.Map as Map
 data Motion = Motion Direction Int
   deriving Show
 
-data Direction = U | L | D | R
+-- | Directions up, down, left, and right.
+data Direction = U | D | L | R
   deriving Show
 
-type Coord = (Int,Int)
+-- parsing -------------------------------------------------------------
 
+-- | Parse a single direction letter.
 parseDirection :: Parser Direction
 parseDirection = asum [U <$ "U", D <$ "D", R <$ "R", L <$ "L"]
 
-parseSteps :: Parser [Motion]
-parseSteps = liftA2 Motion parseDirection number `sepBy` ","
+-- | Parse a direction letter and distance.
+parseMotion :: Parser Motion
+parseMotion = liftA2 Motion parseDirection number
 
-main :: IO ()
-main =
-  do (p1,p2) <- answers <$> getParsedLines 3 parseSteps
-     print p1
-     print p2
+-- | Parse a comma-separated list of motions.
+parseSteps :: Parser [Motion]
+parseSteps = parseMotion `sepBy` ","
+
+-- coordinates ---------------------------------------------------------
+
+-- | Coordinates. First component is distance right, second component is distance down.
+type Coord = (Int,Int)
+
+-- | Convert a direction letter unit vector in the given direction.
+toUnitVector :: Direction -> Coord
+toUnitVector U = ( 0, -1)
+toUnitVector D = ( 0,  1)
+toUnitVector L = (-1,  0)
+toUnitVector R = ( 1,  0)
 
 -- | Pair-wise addition of coordinates.
 --
@@ -56,6 +69,14 @@ addCoord (x,y) (dx,dy) = (x+dx, y+dy)
 -- 8
 manhattan :: Coord -> Int
 manhattan (x,y) = abs x + abs y
+
+------------------------------------------------------------------------
+
+main :: IO ()
+main =
+  do (p1,p2) <- answers <$> getParsedLines 3 parseSteps
+     print p1
+     print p2
 
 -- | Given the input file parsed as lists of lists of motions, compute the
 -- nearest distance to origin and minimum sum steps to intersection.
@@ -85,15 +106,15 @@ nearestDistanceToOrigin = minimum . map manhattan . Map.keys
 -- >>> check ["R8,U5,L5,D3","U7,R6,D4,L4"]
 -- fromList [((3,-3),40),((6,-5),30)]
 pathIntersections :: [[Motion]] -> Map Coord Int
-pathIntersections = foldl1' (Map.intersectionWith (+)) . map locations
+pathIntersections = foldl1' (Map.intersectionWith (+)) . map distances
 
 -- | Generate a map of the coordinates a path visits. Each coordinate is
 -- indexed by the number of steps it took to get to that location.
 --
--- >>> locations [Motion D 2, Motion R 1]
+-- >>> distances [Motion D 2, Motion R 1]
 -- fromList [((0,1),1),((0,2),2),((1,2),3)]
-locations :: [Motion] -> Map Coord Int
-locations steps = Map.fromListWith min (zip (generatePath steps) [1..])
+distances :: [Motion] -> Map Coord Int
+distances steps = Map.fromListWith min (zip (generatePath steps) [1..])
 
 -- | Generate the list of coordinates visited by a list of steps.
 --
@@ -101,13 +122,5 @@ locations steps = Map.fromListWith min (zip (generatePath steps) [1..])
 -- [(0,1),(0,2),(1,2)]
 generatePath :: [Motion] -> [Coord]
 generatePath
-  = tail -- drop starting point
-  . scanl' addCoord (0,0)
+  = scanl1 addCoord
   . concatMap (\(Motion d n) -> replicate n (toUnitVector d))
-
--- | Convert a direction letter unit vector in the given direction.
-toUnitVector :: Direction -> Coord
-toUnitVector U = ( 0, -1)
-toUnitVector D = ( 0,  1)
-toUnitVector L = (-1,  0)
-toUnitVector R = ( 1,  0)
