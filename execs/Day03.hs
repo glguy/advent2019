@@ -14,7 +14,8 @@ module Main (main) where
 import           Advent (Parser, sepBy, getParsedLines, anySingle, number)
 import           Advent.Coord (Coord)
 import qualified Advent.Coord as Coord
-import           Control.Applicative (liftA2, (<|>))
+import           Control.Applicative (liftA2)
+import           Data.Foldable (asum)
 import           Data.List (scanl', foldl1')
 import           Data.Map (Map)
 import qualified Data.Map as Map
@@ -29,7 +30,7 @@ data Direction = U | L | D | R
   deriving Show
 
 parseDirection :: Parser Direction
-parseDirection = U <$ "U" <|> D <$ "D" <|> R <$ "R" <|> L <$ "L"
+parseDirection = asum [U <$ "U", D <$ "D", R <$ "R", L <$ "L"]
 
 parseSteps :: Parser [Motion]
 parseSteps = liftA2 Motion parseDirection number `sepBy` ","
