@@ -14,6 +14,7 @@ module Main (main) where
 import           Advent (Parser, sepBy, getParsedLines, anySingle, number)
 import qualified Advent.Coord as C
 import           Control.Applicative (liftA2)
+import           Data.List (foldl1')
 import           Data.Map (Map)
 import qualified Data.Map as Map
 
@@ -22,10 +23,8 @@ parseSteps = liftA2 (,) anySingle number `sepBy` ","
 
 main :: IO ()
 main =
-  do [inp1,inp2] <- getParsedLines 3 parseSteps
-     let inter = Map.intersectionWith (+)
-                   (locations inp1)
-                   (locations inp2)
+  do stepss <- getParsedLines 3 parseSteps
+     let inter = foldl1' (Map.intersectionWith (+)) (map locations stepss)
      print (minimum (map (C.manhattan C.origin) (Map.keys inter)))
      print (minimum inter)
 
