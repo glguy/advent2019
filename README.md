@@ -1,6 +1,6 @@
 # Advent of Code 2019
 
-Thes are my Advent of Code 2019 solutions. I try to focus on making clean and documented Haskell solutions to teach puzzle.
+Thes are my Advent of Code 2019 solutions. I try to focus on making clean and documented Haskell solutions to each puzzle.
 
 We'll be chatting about AoC on IRC all December. You can find AoC discussion on [freenode](https://freenode.net)'s `##adventofcode` and `#haskell` ([webchat](https://webchat.freenode.net/#haskell,##adventofcode))
 
