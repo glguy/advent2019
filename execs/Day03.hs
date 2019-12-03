@@ -14,7 +14,7 @@ module Main (main) where
 import           Advent (Parser, sepBy, getParsedLines, anySingle, number)
 import qualified Advent.Coord as C
 import           Control.Applicative (liftA2)
-import           Data.List (foldl1')
+import           Data.List (scanl', foldl1')
 import           Data.Map (Map)
 import qualified Data.Map as Map
 
@@ -35,10 +35,10 @@ locations steps = Map.fromList (zip (generatePath C.origin steps) [1..])
 
 -- | Generate the list of coordinates visited by a list of steps.
 generatePath :: C.Coord -> [(Char, Int)] -> [C.Coord]
-generatePath _ [] = []
-generatePath c ((d,n):xs) = drop 1 ys ++ generatePath (last ys) xs
-  where
-    ys = take (n+1) (iterate (todir d) c)
+generatePath c xs
+  = tail -- drop starting point
+  $ scanl' (\x f -> f x) c
+  $ concatMap (\(d,n) -> replicate n (todir d)) xs
 
 -- | Convert a direction letter to a coordinate update function.
 todir :: Char -> C.Coord -> C.Coord
