@@ -1,6 +1,6 @@
 # Advent of Code 2019
 
-Thes are my Advent of Code 2019 solutions. I try to focus on making clean and documented Haskell solutions to teach puzzle.
+These are my Advent of Code 2019 solutions. I try to focus on making clean and documented Haskell solutions to each puzzle.
 
 We'll be chatting about AoC on IRC all December. You can find AoC discussion on [freenode](https://freenode.net)'s `##adventofcode` and `#haskell` ([webchat](https://webchat.freenode.net/#haskell,##adventofcode))
 
@@ -39,5 +39,6 @@ $ cabal run Day01
 
 ## Common libraries used
 
-* **containers** - almost all of the solutions will benefit from having access to `Map` and `Set` types from this package.
+* **containers** - Almost all of the solutions will benefit from having access to `Map` and `Set` types from this package.
 * **megaparsec** - Each problem features a simple text-file format input. Parser combinators make it easy to define the simple parser needed to consume these inputs.
+* **doctest** - Having checked examples in the documentation makes it easier to understand what code does and easy to add unit tests.
