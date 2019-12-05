@@ -15,33 +15,35 @@ This solution works with the following passes:
 
   1. Parse input text file into a list of numbers
   2. Execute op codes to extract the input/output "effects"
-  3. Execute the input/output "effects" to determine the final output.
+  3. Evaluate the effect as a function from a list of inputs to list of outputs
+  4. Apply the function to a single input and find the last output.
 
->>> let parse = head . either error id . Advent.parseLines memoryParser
+>>> let check = effectList . run . newMachine . head . either error id . Advent.parseLines memoryParser
 
->>> let pgm = parse "3,12,6,12,15,1,13,14,13,4,13,99,-1,0,1,9"
->>> driver [0] (run (newMachine pgm))
+>>> let go = check "3,12,6,12,15,1,13,14,13,4,13,99,-1,0,1,9"
+>>> go [0]
 [0]
->>> driver [10] (run (newMachine pgm))
+>>> go [10]
 [1]
 
->>> let pgm = parse "3,3,1105,-1,9,1101,0,0,12,4,12,99,1"
->>> driver [0] (run (newMachine pgm))
+>>> let go = check "3,3,1105,-1,9,1101,0,0,12,4,12,99,1"
+>>> go [0]
 [0]
->>> driver [10] (run (newMachine pgm))
+>>> go [10]
 [1]
 
 >>> :{
->>> let pgm = parse "3,21,1008,21,8,20,1005,20,22,107,8,21,20,1006,20,31,\
->>>                 \1106,0,36,98,0,0,1002,21,125,20,4,20,1105,1,46,104,\
->>>                 \999,1105,1,46,1101,1000,1,20,4,20,1105,1,46,98,99"
+>>> let go = check
+              "3,21,1008,21,8,20,1005,20,22,107,8,21,20,1006,20,31,\
+>>>           \1106,0,36,98,0,0,1002,21,125,20,4,20,1105,1,46,104,\
+>>>           \999,1105,1,46,1101,1000,1,20,4,20,1105,1,46,98,99"
 >>> :}
 
->>> driver [7] (run (newMachine pgm))
+>>> go [7]
 [999]
->>> driver [8] (run (newMachine pgm))
+>>> go [8]
 [1000]
->>> driver [9] (run (newMachine pgm))
+>>> go [9]
 [1001]
 
 -}
@@ -69,18 +71,18 @@ memoryParser = new <$> number `sepBy` ","
 main :: IO ()
 main =
   do [pgm] <- getParsedLines 5 memoryParser
-     let go i = print $ last $ driver [i] $ run $ newMachine pgm
+     let go i = print (last (effectList (run (newMachine pgm)) [i]))
      go 1
      go 5
 
--- | Evaluate a program's effect given a list of inputs and producing
--- its list of outputs.
-driver :: [Int] {- ^ inputs -} -> Effect -> [Int] {- ^ outputs -}
-driver inputs effect =
+-- | Evaluate a program's effect as a function from a list of
+-- inputs to a list of outputs.
+effectList :: Effect -> [Int] {- ^ inputs -} -> [Int] {- ^ outputs -}
+effectList effect inputs =
   case effect of
-    Input f | x:xs <- inputs -> driver xs (f x)
+    Input f | x:xs <- inputs -> effectList (f x) xs
             | otherwise      -> error "Not enough inputs"
-    Output o e               -> o : driver inputs e
+    Output o e               -> o : effectList e inputs
     Halt                     -> []
 
 -- | Machine state
