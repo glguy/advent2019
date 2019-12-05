@@ -1,4 +1,4 @@
-{-# Language OverloadedStrings #-}
+{-# Language RecordWildCards, OverloadedStrings #-}
 {-|
 Module      : Main
 Description : Day 5 solution
@@ -32,36 +32,46 @@ memoryParser = new <$> number `sepBy` ","
 main :: IO ()
 main =
   do [pgm] <- getParsedLines 5 memoryParser
-     print (head (programTrace [1] [] 0 pgm))
-     print (head (programTrace [5] [] 0 pgm))
+     let mach i = Machine { pc = 0, mem = pgm, ins = [i], outs = [] }
+     print $ head $ outs $ run $ mach 1
+     print $ head $ outs $ run $ mach 5
 
-programTrace :: [Int] -> [Int] -> Int {- ^ program counter -} -> Memory -> [Int]
-programTrace ins outs pc pgm = result
+data Machine = Machine
+  { pc :: Int
+  , mem :: Memory
+  , ins :: [Int]
+  , outs :: [Int]
+  }
+
+run :: Machine -> Machine
+run m@Machine{..} = result
   where
     -- Opcode argument
-    arg i = pgm ! (pc + i)
+    arg i = mem ! (pc + i)
 
     -- Dereferenced opcode argument
-    val i
-      | digit (i+1) (arg 0) == 0 = pgm ! arg i
-      | digit (i+1) (arg 0) == 1 = arg i
+    val i =
+      case digit (i+1) (arg 0) of
+        0 -> mem ! arg i
+        1 -> arg i
+        x -> error ("bad parameter mode: " ++ show x)
 
     result =
       case arg 0 `mod` 100 of
         a | a >= 10000 -> error (show a) -- sanity check
-        1                  -> programTrace ins outs (pc + 4) (set (arg 3) (val 1 + val 2) pgm)
-        2                  -> programTrace ins outs (pc + 4) (set (arg 3) (val 1 * val 2) pgm)
-        3                  -> programTrace (tail ins) outs (pc + 2) (set (arg 1) (head ins) pgm)
-        4                  -> programTrace ins (val 1 : outs) (pc + 2) pgm
-        5  | val 1 == 0    -> programTrace ins outs (pc + 3) pgm
-           | otherwise     -> programTrace ins outs (val 2) pgm
-        6  | val 1 /= 0    -> programTrace ins outs (pc + 3) pgm
-           | otherwise     -> programTrace ins outs (val 2) pgm
-        7  | val 1 < val 2 -> programTrace ins outs (pc + 4) (set (arg 3) 1 pgm)
-           | otherwise     -> programTrace ins outs (pc + 4) (set (arg 3) 0 pgm)
-        8  | val 1 ==val 2 -> programTrace ins outs (pc + 4) (set (arg 3) 1 pgm)
-           | otherwise     -> programTrace ins outs (pc + 4) (set (arg 3) 0 pgm)
-        99 -> outs
+        1                  -> run m{ pc = pc + 4, mem = set (arg 3) (val 1 + val 2) mem }
+        2                  -> run m{ pc = pc + 4, mem = set (arg 3) (val 1 * val 2) mem }
+        3                  -> run m{ pc = pc + 2, mem = set (arg 1) (head ins) mem, ins = tail ins }
+        4                  -> run m{ pc = pc + 2, outs = val 1 : outs }
+        5  | val 1 == 0    -> run m{ pc = pc + 3 }
+           | otherwise     -> run m{ pc = val 2 }
+        6  | val 1 /= 0    -> run m{ pc = pc + 3 }
+           | otherwise     -> run m{ pc = val 2 }
+        7  | val 1 < val 2 -> run m{ pc = pc + 4, mem = set (arg 3) 1 mem }
+           | otherwise     -> run m{ pc = pc + 4, mem = set (arg 3) 0 mem }
+        8  | val 1 ==val 2 -> run m{ pc = pc + 4, mem = set (arg 3) 1 mem }
+           | otherwise     -> run m{ pc = pc + 4, mem = set (arg 3) 0 mem }
+        99 -> m
         o  -> error ("Bad opcode " ++ show o ++ " at " ++ show pc)
 
 digit :: Int -> Int -> Int
