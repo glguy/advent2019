@@ -8,18 +8,27 @@ Maintainer  : emertens@gmail.com
 
 <https://adventofcode.com/2019/day/5>
 
+This task expands the virtual machine defined in day 2
+adding jumps, conditionals, inputs, and outputs.
+
+This solution works with the following passes:
+
+  1. Parse input text file into a list of numbers
+  2. Execute op codes to extract the input/output "effects"
+  3. Execute the input/output "effects" to determine the final output.
+
 >>> let parse = head . either error id . Advent.parseLines memoryParser
 
 >>> let pgm = parse "3,12,6,12,15,1,13,14,13,4,13,99,-1,0,1,9"
->>> outs (run (newMachine [0] pgm))
+>>> driver [0] (run (newMachine pgm))
 [0]
->>> outs (run (newMachine [10] pgm))
+>>> driver [10] (run (newMachine pgm))
 [1]
 
 >>> let pgm = parse "3,3,1105,-1,9,1101,0,0,12,4,12,99,1"
->>> outs (run (newMachine [0] pgm))
+>>> driver [0] (run (newMachine pgm))
 [0]
->>> outs (run (newMachine [10] pgm))
+>>> driver [10] (run (newMachine pgm))
 [1]
 
 >>> :{
@@ -28,11 +37,11 @@ Maintainer  : emertens@gmail.com
 >>>                 \999,1105,1,46,1101,1000,1,20,4,20,1105,1,46,98,99"
 >>> :}
 
->>> outs (run (newMachine [7] pgm))
+>>> driver [7] (run (newMachine pgm))
 [999]
->>> outs (run (newMachine [8] pgm))
+>>> driver [8] (run (newMachine pgm))
 [1000]
->>> outs (run (newMachine [9] pgm))
+>>> driver [9] (run (newMachine pgm))
 [1001]
 
 -}
@@ -60,18 +69,19 @@ memoryParser = new <$> number `sepBy` ","
 main :: IO ()
 main =
   do [pgm] <- getParsedLines 5 memoryParser
-     let go i = print $ driver i (error "no output") $ run $ newMachine pgm
+     let go i = print $ last $ driver [i] $ run $ newMachine pgm
      go 1
      go 5
 
--- | Evaluate a program's effect given a constant input. Remember the
--- last output and return it.
-driver :: Int {- ^ input -} -> Int {- ^ last output -} -> Effect -> Int
-driver input output effect =
+-- | Evaluate a program's effect given a list of inputs and producing
+-- its list of outputs.
+driver :: [Int] {- ^ inputs -} -> Effect -> [Int] {- ^ outputs -}
+driver inputs effect =
   case effect of
-    Halt       -> output
-    Input f    -> driver input output (f input)
-    Output o e -> driver input o e
+    Input f | x:xs <- inputs -> driver xs (f x)
+            | otherwise      -> error "Not enough inputs"
+    Output o e               -> o : driver inputs e
+    Halt                     -> []
 
 -- | Machine state
 data Machine = Machine
@@ -81,9 +91,9 @@ data Machine = Machine
 
 -- | Possible effects from running a machine
 data Effect
-  = Output Int Effect     -- | Output an integer
-  | Input (Int -> Effect) -- | Input an integer
-  | Halt                  -- | Halt execution
+  = Output Int Effect     -- ^ Output an integer
+  | Input (Int -> Effect) -- ^ Input an integer
+  | Halt                  -- ^ Halt execution
 
 -- | Generate a fresh machine state starting at program counter @0@
 -- with no outputs.
