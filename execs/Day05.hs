@@ -18,15 +18,15 @@ This solution works with the following passes:
   3. Evaluate the effect as a function from a list of inputs to list of outputs
   4. Apply the function to a single input and find the last output.
 
->>> let check = effectList . run . newMachine . head . either error id . Advent.parseLines memoryParser
+>>> let check = effectList . run . newMachine
 
->>> let go = check "3,12,6,12,15,1,13,14,13,4,13,99,-1,0,1,9"
+>>> let go = check [3,12,6,12,15,1,13,14,13,4,13,99,-1,0,1,9]
 >>> go [0]
 [0]
 >>> go [10]
 [1]
 
->>> let go = check "3,3,1105,-1,9,1101,0,0,12,4,12,99,1"
+>>> let go = check [3,3,1105,-1,9,1101,0,0,12,4,12,99,1]
 >>> go [0]
 [0]
 >>> go [10]
@@ -34,9 +34,9 @@ This solution works with the following passes:
 
 >>> :{
 >>> let go = check
-              "3,21,1008,21,8,20,1005,20,22,107,8,21,20,1006,20,31,\
->>>           \1106,0,36,98,0,0,1002,21,125,20,4,20,1105,1,46,104,\
->>>           \999,1105,1,46,1101,1000,1,20,4,20,1105,1,46,98,99"
+>>>           [3,21,1008,21,8,20,1005,20,22,107,8,21,20,1006,20,31,
+>>>            1106,0,36,98,0,0,1002,21,125,20,4,20,1105,1,46,104,
+>>>            999,1105,1,46,1101,1000,1,20,4,20,1105,1,46,98,99]
 >>> :}
 
 >>> go [7]
@@ -65,8 +65,8 @@ new = Seq.fromList
 set :: Int -> Int -> Memory -> Memory
 set i v m = v `seq` Seq.update i v m
 
-memoryParser :: Parser Memory
-memoryParser = new <$> number `sepBy` ","
+memoryParser :: Parser [Int]
+memoryParser = number `sepBy` ","
 
 main :: IO ()
 main =
@@ -99,8 +99,8 @@ data Effect
 
 -- | Generate a fresh machine state starting at program counter @0@
 -- with no outputs.
-newMachine :: Memory {- ^ initial memory -} -> Machine
-newMachine mem = Machine { pc = 0, mem = mem }
+newMachine :: [Int] {- ^ initial memory -} -> Machine
+newMachine mem = Machine { pc = 0, mem = new mem }
 
 -- | Compute the effect of running a machine.
 run :: Machine -> Effect
