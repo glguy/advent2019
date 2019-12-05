@@ -60,25 +60,38 @@ memoryParser = new <$> number `sepBy` ","
 main :: IO ()
 main =
   do [pgm] <- getParsedLines 5 memoryParser
-     let go i = print $ head $ outs $ run $ newMachine [i] pgm
+     let go i = print $ driver i (error "no output") $ run $ newMachine pgm
      go 1
      go 5
 
+-- | Evaluate a program's effect given a constant input. Remember the
+-- last output and return it.
+driver :: Int {- ^ input -} -> Int {- ^ last output -} -> Effect -> Int
+driver input output effect =
+  case effect of
+    Halt       -> output
+    Input f    -> driver input output (f input)
+    Output o e -> driver input o e
+
 -- | Machine state
 data Machine = Machine
-  { pc   :: Int    -- ^ program counter
+  { pc   :: !Int   -- ^ program counter
   , mem  :: Memory -- ^ memory
-  , ins  :: [Int]  -- ^ available inputs
-  , outs :: [Int]  -- ^ outputs (most recent first)
   }
+
+-- | Possible effects from running a machine
+data Effect
+  = Output Int Effect     -- | Output an integer
+  | Input (Int -> Effect) -- | Input an integer
+  | Halt                  -- | Halt execution
 
 -- | Generate a fresh machine state starting at program counter @0@
 -- with no outputs.
-newMachine :: [Int] {- ^ inputs -} -> Memory {- ^ initial memory -} -> Machine
-newMachine ins mem = Machine { pc = 0, mem = mem, ins = ins, outs = [] }
+newMachine :: Memory {- ^ initial memory -} -> Machine
+newMachine mem = Machine { pc = 0, mem = mem }
 
--- | Step a machine until it halts.
-run :: Machine -> Machine
+-- | Compute the effect of running a machine.
+run :: Machine -> Effect
 run m@Machine{..} = result
   where
     -- Opcode argument
@@ -101,8 +114,8 @@ run m@Machine{..} = result
         1  -> run m{ pc = pc + 4, mem = set (arg 3) (val 1 + val 2) mem             }
         2  -> run m{ pc = pc + 4, mem = set (arg 3) (val 1 * val 2) mem             }
 
-        3  -> run m{ pc = pc + 2, mem = set (arg 1) (head ins) mem, ins = tail ins  }
-        4  -> run m{ pc = pc + 2, outs = val 1 : outs                               }
+        3  -> Input (\i -> run m{ pc = pc + 2, mem = set (arg 1) i mem })
+        4  -> Output (val 1) (run m{ pc = pc + 2 })
 
         5  -> run m{ pc = bool (val 2) (pc + 3) (val 1 == 0)                        }
         6  -> run m{ pc = bool (val 2) (pc + 3) (val 1 /= 0)                        }
@@ -110,7 +123,7 @@ run m@Machine{..} = result
         7  -> run m{ pc = pc + 4, mem = set (arg 3) (bool 0 1 (val 1 <  val 2)) mem }
         8  -> run m{ pc = pc + 4, mem = set (arg 3) (bool 0 1 (val 1 == val 2)) mem }
 
-        99 -> m
+        99 -> Halt
         o  -> error ("Bad opcode " ++ show o ++ " at " ++ show pc)
 
 -- | Extract the ith digit from a number.
