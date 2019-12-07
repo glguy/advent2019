@@ -6,6 +6,7 @@ License     : ISC
 Maintainer  : emertens@gmail.com
 -}
 {-# Language PatternSynonyms, ViewPatterns, DeriveTraversable #-}
+{-# Options_GHC -Wno-name-shadowing #-}
 module Advent.PQueue
   ( PQueue(Empty, (:<|))
 

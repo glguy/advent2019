@@ -23,7 +23,7 @@ coordRow (C row _) = row
 coordCol (C _ col) = col
 
 instance Ix Coord where
-  unsafeIndex (C lorow locol, C hirow hicol) (C row col) =
+  unsafeIndex (C lorow locol, C _hirow hicol) (C row col) =
     (row - lorow) * (hicol - locol + 1) + (col - locol)
 
   inRange (C lorow locol, C hirow hicol) (C row col) =

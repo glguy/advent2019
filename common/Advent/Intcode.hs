@@ -43,8 +43,6 @@ import           Advent        (Parser, number, sepBy)
 import           Data.Bool     (bool)
 import           Data.Sequence (Seq)
 import qualified Data.Sequence as Seq
-import Data.List
-import Debug.Trace
 
 intCodeToList :: [Int] -> [Int] -> [Int]
 intCodeToList pgm = effectList (run 0 (new pgm))

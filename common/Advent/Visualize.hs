@@ -21,7 +21,6 @@ module Advent.Visualize
 
 import Advent.Coord
 import Codec.Picture
-import Data.Array.IArray (IArray, (!), bounds)
 import Data.Word (Word8)
 
 drawCoords :: Pixel p => (Coord, Coord) -> (Coord -> p) -> Image p

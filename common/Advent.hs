@@ -3,7 +3,6 @@ module Advent
   , satisfy, anySingle, sepBy
   ) where
 
-import Control.Applicative
 import System.Environment
 import Text.Printf
 import Data.Foldable (toList)

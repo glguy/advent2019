@@ -7,6 +7,7 @@ Maintainer  : emertens@gmail.com
 
 -}
 {-# Language PatternSynonyms, ViewPatterns #-}
+{-# Options_GHC -Wno-name-shadowing #-}
 module Advent.Queue (Queue(Empty, (:<|)), (|>), singleton, fromList, snoc, pop, appendList) where
 
 import Data.Foldable (Foldable(..))
