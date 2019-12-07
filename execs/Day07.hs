@@ -74,6 +74,8 @@ part2 pgm = maximum [last (thrustController pgm p) | p <- permutations [5..9]]
 --
 -- >>> thrustController (intCodeToList [3,15,3,16,1002,16,10,16,1,16,15,15,4,15,99,0,0]) [4,3,2,1,0]
 -- [43210]
+-- >>> thrustController (intCodeToList [3,26,1001,26,-4,26,3,27,1002,27,2,27,1,27,26,27,4,27,1001,28,-1,28,1005,28,6,99,0,0,5]) [9,8,7,6,5]
+-- [129,4257,136353,4363425,139629729]
 thrustController ::
   ListFn {- ^ amplifier controller software -} ->
   ListFn {- ^ thrust controller             -}
