@@ -71,6 +71,9 @@ part2 pgm = maximum [last (thrustController pgm p) | p <- permutations [5..9]]
 -- Once instances of the control software is started for each phase setting,
 -- the instances are all sequenced together into a single loop. A starting
 -- @0@ element is added as an initial input.
+--
+-- >>> thrustController (intCodeToList [3,15,3,16,1002,16,10,16,1,16,15,15,4,15,99,0,0]) [4,3,2,1,0]
+-- [43210]
 thrustController ::
   ListFn {- ^ amplifier controller software -} ->
   ListFn {- ^ thrust controller             -}
@@ -79,10 +82,21 @@ thrustController ctrl phases = tieknot [ctrl << p | p <- phases]
 -- | Create a feedback loop given the initialized controllers
 -- and return the thruster outputs. Feed an initial @0@ value
 -- into the loop.
+--
+-- >>> tieknot [map (2*), map (1+), take 5]
+-- [1,3,7,15,31]
 tieknot ::
   [ListFn] {- ^ initialized amplifier controllers -} ->
   [Int]    {- ^ thruster outputs                  -}
-tieknot fs = fix (compose fs << 0)
+tieknot fs = fix (composeLR fs << 0)
+
+-- | Compose list functions from left-to-right. Inputs go into
+-- first list function and outputs come from last list function.
+--
+-- >>> composeLR [map (2*), map (1+)] [3,4,5]
+-- [7,9,11]
+composeLR :: [ListFn] -> ListFn
+composeLR fs xs = foldl (\x f -> f x) xs fs
 
 -- | Feed a single input into a list function.
 --
