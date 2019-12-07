@@ -85,5 +85,8 @@ tieknot ::
 tieknot fs = fix (compose fs << 0)
 
 -- | Feed a single input into a list function.
+--
+-- >>> (map (*2) << 10) [5,6,7]
+-- [20,10,12,14]
 (<<) :: ListFn -> Int -> ListFn
 (f << x) xs = f (x:xs)
