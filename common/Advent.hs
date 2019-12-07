@@ -130,3 +130,10 @@ minimumMaybe xs
 -- fromList [('a',2),('b',3),('c',1)]
 cardinality :: Ord a => [a] -> Map a Int
 cardinality xs = Map.fromListWith (+) [ (x,1) | x <- xs ]
+
+-- | Compose a list of functions together
+--
+-- >>> compose [ (1:), (2:), (3:) ] []
+-- [1,2,3]
+compose :: [a -> a] -> a -> a
+compose = foldr (.) id

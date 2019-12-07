@@ -46,6 +46,9 @@ import qualified Data.Sequence as Seq
 import Data.List
 import Debug.Trace
 
+intCodeToList :: [Int] -> [Int] -> [Int]
+intCodeToList pgm = effectList (run 0 (new pgm))
+
 type Memory = Seq Int
 
 (!) :: Memory -> Int -> Int
