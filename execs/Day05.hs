@@ -38,15 +38,14 @@ This solution works with the following passes:
 module Main (main) where
 
 import           Advent        (Parser, getParsedLines, number, sepBy)
-import           Advent.Intcode (memoryParser, new, run, effectList)
+import           Advent.Intcode (memoryParser, intCodeToList)
 import           Data.Bool     (bool)
 import           Data.Sequence (Seq)
 import qualified Data.Sequence as Seq
 
 main :: IO ()
 main =
-  do [pgm] <- getParsedLines 5 memoryParser
-     let eff = effectList (run 0 (new pgm))
-     let go i = print (last (eff [i]))
+  do [pgm] <- map intCodeToList <$> getParsedLines 5 memoryParser
+     let go i = print (last (pgm [i]))
      go 1
      go 5

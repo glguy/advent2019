@@ -56,7 +56,7 @@ getParsedLines i p =
 -- | Run a parser on each line of the input file. Each line will be parsed
 -- in isolation. The parser must consume the whole line.
 --
--- >>> parseLines (many anySingle) "12\n34\n"
+-- >>> parseLines (Control.Applicative.many anySingle) "12\n34\n"
 -- Right ["12","34"]
 -- >>> parseLines number "12\n34\n"
 -- Right [12,34]
