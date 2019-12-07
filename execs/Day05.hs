@@ -18,7 +18,7 @@ This solution works with the following passes:
   3. Evaluate the effect as a function from a list of inputs to list of outputs
   4. Apply the function to a single input and find the last output.
 
->>> let check = effectList . run . newMachine
+>>> let check = effectList . run 0 . new
 
 >>> check [3,12,6,12,15,1,13,14,13,4,13,99,-1,0,1,9] <$> [[0],[10]]
 [[0],[1]]
@@ -59,7 +59,7 @@ memoryParser = number `sepBy` ","
 main :: IO ()
 main =
   do [pgm] <- getParsedLines 5 memoryParser
-     let go i = print (last (effectList (run (newMachine pgm)) [i]))
+     let go i = print (last (effectList (run 0 (new pgm)) [i]))
      go 1
      go 5
 
@@ -73,58 +73,34 @@ effectList effect inputs =
     Output o e               -> o : effectList e inputs
     Halt                     -> []
 
--- | Machine state
-data Machine = Machine
-  { pc   :: !Int   -- ^ program counter
-  , mem  :: Memory -- ^ memory
-  }
-
 -- | Possible effects from running a machine
 data Effect
   = Output Int Effect     -- ^ Output an integer
   | Input (Int -> Effect) -- ^ Input an integer
   | Halt                  -- ^ Halt execution
 
--- | Generate a fresh machine state starting at program counter @0@
--- with no outputs.
-newMachine :: [Int] {- ^ initial memory -} -> Machine
-newMachine mem = Machine { pc = 0, mem = new mem }
-
 -- | Compute the effect of running a machine.
-run :: Machine -> Effect
-run m@Machine{..} = result
+run :: Int -> Memory -> Effect
+run pc mem = result
   where
-    -- Opcode argument
-    arg i = mem ! (pc + i)
-
     -- Dereferenced opcode argument
-    val i =
-      case mode i of
-        0 -> mem ! arg i
-        1 -> arg i
-        x -> error ("bad parameter mode " ++ show x ++ " at " ++ show pc)
+    val (Imm i) = i
+    val (Ptr p) = mem ! p
 
-    -- Parameter mode
-    mode i = digit (i+1) (arg 0)
-
-    opcode = arg 0 `mod` 100
+    sav (Imm _) = error "write to immediate"
+    sav (Ptr p) = set p
 
     result =
-      case opcode of
-        1  -> run m{ pc = pc + 4, mem = set (arg 3) (val 1 + val 2) mem             }
-        2  -> run m{ pc = pc + 4, mem = set (arg 3) (val 1 * val 2) mem             }
-
-        3  -> Input (\i -> run m{ pc = pc + 2, mem = set (arg 1) i mem })
-        4  -> Output (val 1) (run m{ pc = pc + 2 })
-
-        5  -> run m{ pc = bool (val 2) (pc + 3) (val 1 == 0)                        }
-        6  -> run m{ pc = bool (val 2) (pc + 3) (val 1 /= 0)                        }
-
-        7  -> run m{ pc = pc + 4, mem = set (arg 3) (bool 0 1 (val 1 <  val 2)) mem }
-        8  -> run m{ pc = pc + 4, mem = set (arg 3) (bool 0 1 (val 1 == val 2)) mem }
-
-        99 -> Halt
-        o  -> error ("Bad opcode " ++ show o ++ " at " ++ show pc)
+      case decode mem pc of
+        Add a b c -> run (pc + 4) (sav c (val a + val b) mem)
+        Mul a b c -> run (pc + 4) (sav c (val a * val b) mem)
+        Inp a     -> Input (\i -> run (pc + 2) (sav a i mem))
+        Out a     -> Output (val a) (run (pc + 2) mem)
+        Jnz a b   -> run (bool (val b) (pc + 3) (val a == 0)) mem
+        Jez a b   -> run (bool (val b) (pc + 3) (val a /= 0)) mem
+        Lt  a b c -> run (pc + 4) (sav c (bool 0 1 (val a <  val b)) mem)
+        Eq  a b c -> run (pc + 4) (sav c (bool 0 1 (val a == val b)) mem)
+        Hlt       -> Halt
 
 -- | Extract the ith digit from a number.
 --
@@ -136,3 +112,50 @@ run m@Machine{..} = result
 -- 0
 digit :: Int {- ^ position -} -> Int {- ^ number -} -> Int {- ^ digit -}
 digit i x = x `div` (10^i) `mod` 10
+
+
+data Param
+  = Imm Int
+  | Ptr Int
+  deriving (Eq, Ord, Read, Show)
+
+data Opcode
+  = Add Param Param Param
+  | Mul Param Param Param
+  | Inp Param
+  | Out Param
+  | Jnz Param Param
+  | Jez Param Param
+  | Lt  Param Param Param
+  | Eq  Param Param Param
+  | Hlt
+  deriving (Eq, Ord, Read, Show)
+
+decode :: Memory -> Int -> Opcode
+decode mem pc =
+  let
+    -- Opcode argument
+    arg i = mem ! (pc + i)
+
+    -- Parameter mode
+    mode i = digit (i+1) (arg 0)
+
+    opcode = arg 0 `mod` 100
+
+    par i =
+      case mode i of
+        0 -> Ptr (arg i)
+        1 -> Imm (arg i)
+        m -> error ("Bad parameter mode: " ++ show m)
+  in
+  case opcode of
+    1  -> Add (par 1) (par 2) (par 3)
+    2  -> Mul (par 1) (par 2) (par 3)
+    3  -> Inp (par 1)
+    4  -> Out (par 1)
+    5  -> Jnz (par 1) (par 2)
+    6  -> Jez (par 1) (par 2)
+    7  -> Lt  (par 1) (par 2) (par 3)
+    8  -> Eq  (par 1) (par 2) (par 3)
+    99 -> Hlt
+    o  -> error ("Bad opcode " ++ show o)
