@@ -46,7 +46,7 @@ main =
 part1 ::
   ListFn {- ^ amplifier controller software   -} ->
   Int    {- ^ maximum initial thruster output -}
-part1 pgm = maximum (head . thrustController pgm <$> permutations [0..4])
+part1 pgm = maximum [head (thrustController pgm p) | p <- permutations [0..4]]
 
 -- | Run the given amplitude controller in a feedback loop across
 -- all permutations of the settings 5 through 9. Returns the
@@ -63,7 +63,7 @@ part1 pgm = maximum (head . thrustController pgm <$> permutations [0..4])
 part2 ::
   ListFn {- ^ amplifier controller software -} ->
   Int    {- ^ maximum final thruster output -}
-part2 pgm = maximum (last . thrustController pgm <$> permutations [5..9])
+part2 pgm = maximum [last (thrustController pgm p) | p <- permutations [5..9]]
 
 -- | Given a amplifier controller software function and a list of
 -- phase settings, generate the resulting list of thruster outputs.
@@ -73,8 +73,8 @@ part2 pgm = maximum (last . thrustController pgm <$> permutations [5..9])
 -- @0@ element is added as an initial input.
 thrustController ::
   ListFn {- ^ amplifier controller software -} ->
-  ListFn {- ^ thrust controller             -} ->
-thrustController ctrl phases = tieknot [ ctrl << p | p <- phases ]
+  ListFn {- ^ thrust controller             -}
+thrustController ctrl phases = tieknot [ctrl << p | p <- phases]
 
 -- | Create a feedback loop given the initialized controllers
 -- and return the thruster outputs. Feed an initial @0@ value
