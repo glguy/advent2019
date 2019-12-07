@@ -93,12 +93,12 @@ tieknot ::
 tieknot fs = fix (composeLR fs << 0)
 
 -- | Compose list functions from left-to-right. Inputs go into
--- first list function and outputs come from last list function.
+-- first function and outputs come from last function.
 --
--- >>> composeLR [map (2*), map (1+)] [3,4,5]
--- [7,9,11]
-composeLR :: [ListFn] -> ListFn
-composeLR fs xs = foldl (\x f -> f x) xs fs
+-- >>> composeLR [(2*),(1+)] 3
+-- 7
+composeLR :: [a -> a] -> (a -> a)
+composeLR = foldl (flip (.)) id
 
 -- | Feed a single input into a list function.
 --
