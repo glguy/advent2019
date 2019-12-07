@@ -8,6 +8,14 @@ Maintainer  : emertens@gmail.com
 
 <https://adventofcode.com/2019/day/7>
 
+To compute our thrust controller feedback loop I evaluate the
+given Intcode program as a function from input values to output
+values. Connecting the outputs of one instance of the program
+to the inputs of the next is as simple as composing the two
+functions together. Thanks to non-strict evaluation I can
+pass the output of a composition of these functions back in
+as its own input!
+
 -}
 module Main (main) where
 
@@ -16,13 +24,18 @@ import Advent.Intcode (intCodeToList, memoryParser)
 import Data.Function  (fix)
 import Data.List      (permutations)
 
+-- | A function from a list of input values to a list of output values.
+type ListFn = [Int] -> [Int]
+
 main :: IO ()
 main =
   do [pgm] <- map intCodeToList <$> getParsedLines 7 memoryParser
      print (part1 pgm)
      print (part2 pgm)
 
--- |
+-- | Run the given amplitude controller in a feedback loop across
+-- all permutations of the settings 0 through 4. Returns the
+-- maximum initial thruster output.
 --
 -- >>> part1 (intCodeToList [3,15,3,16,1002,16,10,16,1,16,15,15,4,15,99,0,0])
 -- 43210
@@ -30,10 +43,14 @@ main =
 -- 54321
 -- >>> part1 (intCodeToList [3,31,3,32,1002,32,10,32,1001,31,-2,31,1007,31,0,33,1002,33,7,33,1,33,31,31,1,32,31,31,4,31,99,0,0,0])
 -- 65210
-part1 :: ([Int] -> [Int]) -> Int
-part1 pgm = maximum (head . startup pgm <$> permutations [0..4])
+part1 ::
+  ListFn {- ^ amplifier controller software   -} ->
+  Int    {- ^ maximum initial thruster output -}
+part1 pgm = maximum (head . thrustController pgm <$> permutations [0..4])
 
--- |
+-- | Run the given amplitude controller in a feedback loop across
+-- all permutations of the settings 5 through 9. Returns the
+-- maximum final thruster output.
 --
 -- >>> part2 (intCodeToList [3,26,1001,26,-4,26,3,27,1002,27,2,27,1,27,26,27,4,27,1001,28,-1,28,1005,28,6,99,0,0,5])
 -- 139629729
@@ -43,16 +60,30 @@ part1 pgm = maximum (head . startup pgm <$> permutations [0..4])
 -- >>>                       53,1001,56,-1,56,1005,56,6,99,0,0,0,0,10])
 -- >>> :}
 -- 18216
-part2 :: ([Int] -> [Int]) -> Int
-part2 pgm = maximum (last . startup pgm <$> permutations [5..9])
+part2 ::
+  ListFn {- ^ amplifier controller software -} ->
+  Int    {- ^ maximum final thruster output -}
+part2 pgm = maximum (last . thrustController pgm <$> permutations [5..9])
 
--- given a list of phase settings compute the thrust outputs
-startup ::
-  ([Int] -> [Int]) {- ^ single controller -} ->
-  [Int]            {- ^ phase settings    -} ->
-  [Int]            {- ^ thruster output   -}
-startup ctrl phases = tieknot [ ctrl << p | p <- phases ]
-  where
-    tieknot fs = fix (compose fs << 0)
+-- | Given a amplifier controller software function and a list of
+-- phase settings, generate the resulting list of thruster outputs.
+--
+-- Once instances of the control software is started for each phase setting,
+-- the instances are all sequenced together into a single loop. A starting
+-- @0@ element is added as an initial input.
+thrustController ::
+  ListFn {- ^ amplifier controller software -} ->
+  ListFn {- ^ thrust controller             -} ->
+thrustController ctrl phases = tieknot [ ctrl << p | p <- phases ]
 
-    (f << x) xs = f (x:xs)
+-- | Create a feedback loop given the initialized controllers
+-- and return the thruster outputs. Feed an initial @0@ value
+-- into the loop.
+tieknot ::
+  [ListFn] {- ^ initialized amplifier controllers -} ->
+  [Int]    {- ^ thruster outputs                  -}
+tieknot fs = fix (compose fs << 0)
+
+-- | Feed a single input into a list function.
+(<<) :: ListFn -> Int -> ListFn
+(f << x) xs = f (x:xs)
