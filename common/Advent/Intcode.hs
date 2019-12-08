@@ -58,12 +58,30 @@ import           Data.Bool     (bool)
 import           Data.Sequence (Seq)
 import qualified Data.Sequence as Seq
 
+------------------------------------------------------------------------
+-- High-level interface
+------------------------------------------------------------------------
+
 -- | Run a given memory image as a list transducer.
 intCodeToList ::
   [Int] {- ^ initial memory -} ->
   [Int] {- ^ inputs         -} ->
   [Int] {- ^ outputs        -}
 intCodeToList pgm = effectList (run 0 (new pgm))
+
+-- | Evaluate a program's effect as a function from a list of
+-- inputs to a list of outputs.
+effectList :: Effect -> [Int] {- ^ inputs -} -> [Int] {- ^ outputs -}
+effectList effect inputs =
+  case effect of
+    Input f | x:xs <- inputs -> effectList (f x) xs
+            | otherwise      -> error "Not enough inputs"
+    Output o e               -> o : effectList e inputs
+    Halt                     -> []
+
+------------------------------------------------------------------------
+-- Memory representation
+------------------------------------------------------------------------
 
 -- | Program memory
 type Memory = Seq Int
@@ -83,19 +101,17 @@ set ::
   Memory -> Memory
 set i v m = v `seq` Seq.update i v m
 
+------------------------------------------------------------------------
+-- Parsing
+------------------------------------------------------------------------
+
 -- | Parse an Intcode program as a list of comma separated opcode integers.
 memoryParser :: Parser [Int]
 memoryParser = number `sepBy` ","
 
--- | Evaluate a program's effect as a function from a list of
--- inputs to a list of outputs.
-effectList :: Effect -> [Int] {- ^ inputs -} -> [Int] {- ^ outputs -}
-effectList effect inputs =
-  case effect of
-    Input f | x:xs <- inputs -> effectList (f x) xs
-            | otherwise      -> error "Not enough inputs"
-    Output o e               -> o : effectList e inputs
-    Halt                     -> []
+------------------------------------------------------------------------
+-- Big-step semantics
+------------------------------------------------------------------------
 
 -- | Possible effects from running a machine
 data Effect
@@ -103,7 +119,8 @@ data Effect
   | Input (Int -> Effect) -- ^ Input an integer
   | Halt                  -- ^ Halt execution
 
-run :: Int -> Memory -> Effect
+-- | Big-step semantics of virtual machine.
+run :: Int {- ^ program counter -} -> Memory -> Effect
 run pc mem =
   case step pc mem of
     Step pc' mem'        -> run pc' mem'
@@ -111,13 +128,18 @@ run pc mem =
     StepIn f             -> Input (uncurry run . f)
     StepHalt             -> Halt
 
-data Step
-  = Step    Int Memory
-  | StepOut Int Int Memory
-  | StepIn  (Int -> (Int, Memory))
-  | StepHalt
+------------------------------------------------------------------------
+-- Small-step semantics
+------------------------------------------------------------------------
 
--- | Compute the effect of running a machine.
+-- | Result of small-step semantics.
+data Step
+  = Step    Int Memory             -- ^ pc, memory
+  | StepOut Int Int Memory         -- ^ output, pc, memory
+  | StepIn  (Int -> (Int, Memory)) -- ^ input -> (pc, memory)
+  | StepHalt                       -- ^ halt
+
+-- | Small-step semantics of virtual machine.
 step :: Int {- ^ program counter -} -> Memory -> Step
 step pc mem = result
   where
@@ -139,6 +161,10 @@ step pc mem = result
         Lt  a b c -> Step (pc + 4) (sav c (bool 0 1 (val a <  val b)) mem)
         Eq  a b c -> Step (pc + 4) (sav c (bool 0 1 (val a == val b)) mem)
         Hlt       -> StepHalt
+
+------------------------------------------------------------------------
+-- Opcode decoder
+------------------------------------------------------------------------
 
 -- | Extract the ith digit from a number.
 --
