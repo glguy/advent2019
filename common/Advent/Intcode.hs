@@ -46,6 +46,9 @@ module Advent.Intcode
   -- * Effects
   Effect(..), run,
 
+  -- * Small-step
+  Step(..), step,
+
   -- * Opcodes
   Opcode(..), Param(..), decode,
   ) where
@@ -100,9 +103,23 @@ data Effect
   | Input (Int -> Effect) -- ^ Input an integer
   | Halt                  -- ^ Halt execution
 
+run :: Int -> Memory -> Effect
+run pc mem =
+  case step pc mem of
+    Step pc' mem'        -> run pc' mem'
+    StepOut out pc' mem' -> Output out (run pc' mem')
+    StepIn f             -> Input (uncurry run . f)
+    StepHalt             -> Halt
+
+data Step
+  = Step    Int Memory
+  | StepOut Int Int Memory
+  | StepIn  (Int -> (Int, Memory))
+  | StepHalt
+
 -- | Compute the effect of running a machine.
-run :: Int {- ^ program counter -} -> Memory -> Effect
-run pc mem = result
+step :: Int {- ^ program counter -} -> Memory -> Step
+step pc mem = result
   where
     -- Dereferenced opcode argument
     val (Imm i) = i
@@ -113,15 +130,15 @@ run pc mem = result
 
     result =
       case decode mem pc of
-        Add a b c -> run (pc + 4) (sav c (val a + val b) mem)
-        Mul a b c -> run (pc + 4) (sav c (val a * val b) mem)
-        Inp a     -> Input (\i -> run (pc + 2) (sav a i mem))
-        Out a     -> Output (val a) (run (pc + 2) mem)
-        Jnz a b   -> run (bool (val b) (pc + 3) (val a == 0)) mem
-        Jz  a b   -> run (bool (val b) (pc + 3) (val a /= 0)) mem
-        Lt  a b c -> run (pc + 4) (sav c (bool 0 1 (val a <  val b)) mem)
-        Eq  a b c -> run (pc + 4) (sav c (bool 0 1 (val a == val b)) mem)
-        Hlt       -> Halt
+        Add a b c -> Step (pc + 4) (sav c (val a + val b) mem)
+        Mul a b c -> Step (pc + 4) (sav c (val a * val b) mem)
+        Inp a     -> StepIn (\i -> (pc + 2, sav a i mem))
+        Out a     -> StepOut (val a) (pc + 2) mem
+        Jnz a b   -> Step (bool (val b) (pc + 3) (val a == 0)) mem
+        Jz  a b   -> Step (bool (val b) (pc + 3) (val a /= 0)) mem
+        Lt  a b c -> Step (pc + 4) (sav c (bool 0 1 (val a <  val b)) mem)
+        Eq  a b c -> Step (pc + 4) (sav c (bool 0 1 (val a == val b)) mem)
+        Hlt       -> StepHalt
 
 -- | Extract the ith digit from a number.
 --
