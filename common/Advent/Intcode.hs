@@ -1,4 +1,4 @@
-{-# Language RecordWildCards, OverloadedStrings #-}
+{-# Language BlockArguments, RecordWildCards, OverloadedStrings #-}
 {-|
 Module      : Advent.Intcode
 Description : Intcode interpreter
@@ -50,7 +50,7 @@ module Advent.Intcode
   Step(..), step,
 
   -- * Opcodes
-  Opcode(..), Param(..), decode,
+  Opcode(..), decode,
   ) where
 
 import           Advent        (Parser, number, sepBy)
@@ -151,38 +151,32 @@ run mach =
 
 -- | Result of small-step semantics.
 data Step
-  = Step    Machine          -- ^ pc, memory
-  | StepOut Int Machine      -- ^ output, pc, memory
+  = Step    !Machine          -- ^ pc, memory
+  | StepOut !Int !Machine      -- ^ output, pc, memory
   | StepIn  (Int -> Machine) -- ^ input -> (pc, memory)
-  | StepHalt Machine         -- ^ halt
+  | StepHalt !Machine         -- ^ halt
 
 -- | Small-step semantics of virtual machine.
 step :: Machine -> Step
 step mach = result mach
   where
     -- Dereferenced opcode argument
-    val (Imm i) = i
-    val (Pos p) = mach ! p
-    val (Rel o) = mach ! (relBase mach + o)
-
-    sav (Imm _) = error "write to immediate"
-    sav (Pos p) = set p
-    sav (Rel o) = set (relBase mach + o)
+    val i = mach ! i
 
     result =
       case decode mach of
-        Add a b c -> Step . adv 4 . sav c (val a + val b)
-        Mul a b c -> Step . adv 4 . sav c (val a * val b)
-        Inp a     -> \m -> StepIn (\i -> adv 2 (sav a i m))
+        Add a b c -> Step . adv 4 . set c (val a + val b)
+        Mul a b c -> Step . adv 4 . set c (val a * val b)
+        Inp a     -> \m -> StepIn (\i -> adv 2 (set a i m))
         Out a     -> StepOut (val a) . adv 2
         Jnz a b   | val a == 0 -> Step . adv 3
                   | otherwise  -> Step . jmp (val b)
         Jz  a b   | val a /= 0 -> Step . adv 3
                   | otherwise  -> Step . jmp (val b)
-        Lt  a b c -> Step . adv 4 . sav c (bool 0 1 (val a <  val b))
-        Eq  a b c -> Step . adv 4 . sav c (bool 0 1 (val a == val b))
+        Lt  a b c -> Step . adv 4 . set c (bool 0 1 (val a <  val b))
+        Eq  a b c -> Step . adv 4 . set c (bool 0 1 (val a == val b))
         Arb a     -> Step . adv 2 . adjustRelBase (val a)
-        Hlt       -> StepHalt
+        Hlt       -> StepHalt . adv 1
 
 ------------------------------------------------------------------------
 -- Opcode decoder
@@ -199,25 +193,18 @@ step mach = result mach
 digit :: Int {- ^ position -} -> Int {- ^ number -} -> Int {- ^ digit -}
 digit i x = x `div` (10^i) `mod` 10
 
--- | Opcode parameters
-data Param
-  = Imm Int -- ^ Immediate parameter
-  | Pos Int -- ^ Position parameter
-  | Rel Int
-  deriving (Eq, Ord, Read, Show)
-
--- | VM opcodes
+-- | VM opcodes. Each parameter is resolved to a pointer.
 data Opcode
-  = Add Param Param Param -- ^ addition:        @c = a + b@
-  | Mul Param Param Param -- ^ multiplication:  @c = a * b@
-  | Inp Param             -- ^ input:           @a = input()@
-  | Out Param             -- ^ output:          @output(a)@
-  | Jnz Param Param       -- ^ jump-if-true:    @if a then goto b@
-  | Jz  Param Param       -- ^ jump-if-false:   @if !a then goto b@
-  | Lt  Param Param Param -- ^ less-than:       @c = a < b@
-  | Eq  Param Param Param -- ^ equals:          @c = a == b@
-  | Arb Param             -- ^ adjust-rel-base: @rel += a@
-  | Hlt                   -- ^ halt
+  = Add !Int !Int !Int -- ^ addition:        @c = a + b@
+  | Mul !Int !Int !Int -- ^ multiplication:  @c = a * b@
+  | Inp !Int           -- ^ input:           @a = input()@
+  | Out !Int           -- ^ output:          @output(a)@
+  | Jnz !Int !Int      -- ^ jump-if-true:    @if a then goto b@
+  | Jz  !Int !Int      -- ^ jump-if-false:   @if !a then goto b@
+  | Lt  !Int !Int !Int -- ^ less-than:       @c = a < b@
+  | Eq  !Int !Int !Int -- ^ equals:          @c = a == b@
+  | Arb !Int         -- ^ adjust-rel-base: @rel += a@
+  | Hlt             -- ^ halt
   deriving (Eq, Ord, Read, Show)
 
 -- | Decode an intruction
@@ -228,18 +215,19 @@ decode :: Machine -> Opcode
 decode mach =
   let
     -- Opcode argument
-    arg i = mach ! (pc mach + i)
+    n = mach ! (pc mach)
 
     -- Parameter mode
-    mode i = digit (i+1) (arg 0)
+    mode i = digit (i+1) n
 
-    opcode = arg 0 `mod` 100
+    opcode = n `mod` 100
 
     par i =
+      let a = i + pc mach in
       case mode i of
-        0 -> Pos (arg i)
-        1 -> Imm (arg i)
-        2 -> Rel (arg i)
+        0 -> mach ! a                -- position
+        1 ->        a                -- immediate
+        2 -> mach ! a + relBase mach -- relative
         m -> error ("Bad parameter mode: " ++ show m)
   in
   case opcode of
