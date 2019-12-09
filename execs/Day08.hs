@@ -34,7 +34,7 @@ main =
 render :: Pixel -> Char
 render Black       = '\x2591'
 render Transparent = '\x2592'
-render White       = '\x2593'
+render White       = '\x2588'
 
 overlayLayers :: [Layer] -> Layer
 overlayLayers = foldr1 (zipWith (zipWith overlay))

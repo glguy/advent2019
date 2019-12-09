@@ -90,3 +90,9 @@ executable Day08
   build-depends:       advent2019, base, containers
   hs-source-dirs:      execs
   default-language:    Haskell2010
+
+executable Day09
+  main-is:             Day09.hs
+  build-depends:       advent2019, base, containers
+  hs-source-dirs:      execs
+  default-language:    Haskell2010

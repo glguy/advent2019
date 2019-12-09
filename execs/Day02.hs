@@ -24,17 +24,17 @@ main =
                  , startup noun verb pgm == 19690720 ])
 
 -- | Run the given program after assigning the given noun and verb.
-startup :: Int {- ^ noun -} -> Int {- ^ verb -} -> Memory -> Int
+startup :: Int {- ^ noun -} -> Int {- ^ verb -} -> Machine -> Int
 startup noun verb
   = (! 0)
-  . runPgm 0
+  . runPgm
   . set 1 noun
   . set 2 verb
 
 -- | Run the given program starting at the given program counter
 -- returning the initial memory value once the program halts.
 --
--- >>> let check = Data.Foldable.toList . run 0 . new
+-- >>> let check = Data.IntMap.elems . memory . runPgm . new
 -- >>> check [1,0,0,0,99]
 -- [2,0,0,0,99]
 -- >>> check [2,3,0,3,99]
@@ -45,20 +45,20 @@ startup noun verb
 -- [30,1,1,4,2,5,6,0,99]
 -- >>> check [1,9,10,3,2,3,11,0,99,30,40,50]
 -- [3500,9,10,70,2,3,11,0,99,30,40,50]
-runPgm :: Int -> Memory -> Memory
-runPgm i pgm = last (programTrace i pgm)
+runPgm :: Machine -> Machine
+runPgm = last . programTrace
 
 -- | Run a program providing a list of intermediate states of the program.
 --
 -- >>> let pgm = [1,9,10,3,2,3,11,0,99,30,40,50]
--- >>> mapM_ (print . Data.Foldable.toList) (programTrace 0 (new pgm))
+-- >>> mapM_ (print . Data.IntMap.elems . memory) (programTrace (new pgm))
 -- [1,9,10,3,2,3,11,0,99,30,40,50]
 -- [1,9,10,70,2,3,11,0,99,30,40,50]
 -- [3500,9,10,70,2,3,11,0,99,30,40,50]
-programTrace :: Int {- ^ program counter -} -> Memory -> [Memory]
-programTrace pc pgm =
+programTrace :: Machine -> [Machine]
+programTrace pgm =
   pgm :
-  case step pc pgm of
-    Step pc' pgm' -> programTrace pc' pgm'
-    StepHalt      -> []
-    _             -> error "Unexpected day step on day 2"
+  case step pgm of
+    Step pgm'  -> programTrace pgm'
+    StepHalt _ -> []
+    _          -> error "Unexpected day step on day 2"
