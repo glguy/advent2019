@@ -24,7 +24,7 @@ main =
                  , startup noun verb pgm == 19690720 ])
 
 -- | Run the given program after assigning the given noun and verb.
-startup :: Int {- ^ noun -} -> Int {- ^ verb -} -> Machine -> Int
+startup :: Integer {- ^ noun -} -> Integer {- ^ verb -} -> Machine -> Integer
 startup noun verb
   = (! 0)
   . runPgm
@@ -34,7 +34,7 @@ startup noun verb
 -- | Run the given program starting at the given program counter
 -- returning the initial memory value once the program halts.
 --
--- >>> let check = Data.IntMap.elems . memory . runPgm . new
+-- >>> let check = memoryList . runPgm . new
 -- >>> check [1,0,0,0,99]
 -- [2,0,0,0,99]
 -- >>> check [2,3,0,3,99]
@@ -51,7 +51,7 @@ runPgm = last . programTrace
 -- | Run a program providing a list of intermediate states of the program.
 --
 -- >>> let pgm = [1,9,10,3,2,3,11,0,99,30,40,50]
--- >>> mapM_ (print . Data.IntMap.elems . memory) (programTrace (new pgm))
+-- >>> mapM_ (print . memoryList) (programTrace (new pgm))
 -- [1,9,10,3,2,3,11,0,99,30,40,50]
 -- [1,9,10,70,2,3,11,0,99,30,40,50]
 -- [3500,9,10,70,2,3,11,0,99,30,40,50]

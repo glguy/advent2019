@@ -1,4 +1,4 @@
-{-# Language BlockArguments, RecordWildCards, OverloadedStrings #-}
+{-# Language DeriveTraversable, BlockArguments, RecordWildCards, OverloadedStrings #-}
 {-|
 Module      : Advent.Intcode
 Description : Intcode interpreter
@@ -41,7 +41,7 @@ module Advent.Intcode
   intCodeToList,
 
   -- * Machine state
-  Machine(..), (!), new, set,
+  Machine(..), (!), new, set, memoryList,
 
   -- * Effects
   Effect(..), run,
@@ -53,10 +53,10 @@ module Advent.Intcode
   Opcode(..), decode,
   ) where
 
-import           Advent        (Parser, number, sepBy)
-import           Data.Bool     (bool)
-import           Data.IntMap (IntMap)
-import qualified Data.IntMap as IntMap
+import           Advent    (Parser, number, sepBy)
+import           Data.Bool (bool)
+import           Data.Map (Map)
+import qualified Data.Map as Map
 
 ------------------------------------------------------------------------
 -- High-level interface
@@ -64,14 +64,14 @@ import qualified Data.IntMap as IntMap
 
 -- | Run a given memory image as a list transducer.
 intCodeToList ::
-  [Int] {- ^ initial memory -} ->
-  [Int] {- ^ inputs         -} ->
-  [Int] {- ^ outputs        -}
+  [Integer] {- ^ initial memory -} ->
+  [Integer] {- ^ inputs         -} ->
+  [Integer] {- ^ outputs        -}
 intCodeToList pgm = effectList (run (new pgm))
 
 -- | Evaluate a program's effect as a function from a list of
 -- inputs to a list of outputs.
-effectList :: Effect -> [Int] {- ^ inputs -} -> [Int] {- ^ outputs -}
+effectList :: Effect -> [Integer] {- ^ inputs -} -> [Integer] {- ^ outputs -}
 effectList effect inputs =
   case effect of
     Input f | x:xs <- inputs -> effectList (f x) xs
@@ -85,45 +85,51 @@ effectList effect inputs =
 
 -- | Program memory
 data Machine = Machine
-  { pc      :: !Int
-  , relBase :: !Int
-  , memory  :: !(IntMap Int)
+  { pc      :: !Integer
+  , relBase :: !Integer
+  , memory  :: !(Map Integer Integer)
   }
 
 -- | Index memory at 0-based index
-(!) :: Machine -> Int -> Int
-m ! i = IntMap.findWithDefault 0 i (memory m)
+(!) :: Machine -> Integer -> Integer
+m ! i = Map.findWithDefault 0 i (memory m)
 
 -- | Construct memory from a list of initial values.
-new :: [Int] -> Machine
+new :: [Integer] -> Machine
 new initialValues = Machine
   { pc      = 0
   , relBase = 0
-  , memory  = IntMap.fromList (zip [0..] initialValues)
+  , memory  = Map.fromList (zip [0..] initialValues)
   }
 
 -- | Update the value stored at a given location in memory.
 set ::
-  Int {- ^ position  -} ->
-  Int {- ^ new value -} ->
+  Integer {- ^ position  -} ->
+  Integer {- ^ new value -} ->
   Machine -> Machine
-set i v m = m { memory = v `seq` IntMap.insert i v (memory m) }
+set i 0 m = m { memory = Map.delete i   (memory m) }
+set i v m = m { memory = Map.insert i v (memory m) }
 
-adjustRelBase :: Int -> Machine -> Machine
+adjustRelBase :: Integer -> Machine -> Machine
 adjustRelBase i mach = mach { relBase = relBase mach + i }
 
-adv :: Int -> Machine -> Machine
+adv :: Integer -> Machine -> Machine
 adv i mach = mach { pc = pc mach + i }
 
-jmp :: Int -> Machine -> Machine
+jmp :: Integer -> Machine -> Machine
 jmp i mach = mach { pc = i }
+
+memoryList :: Machine -> [Integer]
+memoryList mach
+  | Map.null (memory mach) = []
+  | otherwise = map (mach !) [0 .. fst (Map.findMax (memory mach))]
 
 ------------------------------------------------------------------------
 -- Parsing
 ------------------------------------------------------------------------
 
 -- | Parse an Intcode program as a list of comma separated opcode integers.
-memoryParser :: Parser [Int]
+memoryParser :: Parser [Integer]
 memoryParser = number `sepBy` ","
 
 ------------------------------------------------------------------------
@@ -132,8 +138,8 @@ memoryParser = number `sepBy` ","
 
 -- | Possible effects from running a machine
 data Effect
-  = Output Int Effect     -- ^ Output an integer
-  | Input (Int -> Effect) -- ^ Input an integer
+  = Output !Integer Effect     -- ^ Output an integer
+  | Input (Integer -> Effect) -- ^ Input an integer
   | Halt                  -- ^ Halt execution
 
 -- | Big-step semantics of virtual machine.
@@ -152,8 +158,8 @@ run mach =
 -- | Result of small-step semantics.
 data Step
   = Step    !Machine          -- ^ pc, memory
-  | StepOut !Int !Machine      -- ^ output, pc, memory
-  | StepIn  (Int -> Machine) -- ^ input -> (pc, memory)
+  | StepOut !Integer !Machine      -- ^ output, pc, memory
+  | StepIn  (Integer -> Machine) -- ^ input -> (pc, memory)
   | StepHalt !Machine         -- ^ halt
 
 -- | Small-step semantics of virtual machine.
@@ -190,27 +196,27 @@ step mach = result mach
 -- 2
 -- >>> digit 4 2468
 -- 0
-digit :: Int {- ^ position -} -> Int {- ^ number -} -> Int {- ^ digit -}
+digit :: Integer {- ^ position -} -> Integer {- ^ number -} -> Integer {- ^ digit -}
 digit i x = x `div` (10^i) `mod` 10
 
 -- | VM opcodes. Each parameter is resolved to a pointer.
 data Opcode
-  = Add !Int !Int !Int -- ^ addition:        @c = a + b@
-  | Mul !Int !Int !Int -- ^ multiplication:  @c = a * b@
-  | Inp !Int           -- ^ input:           @a = input()@
-  | Out !Int           -- ^ output:          @output(a)@
-  | Jnz !Int !Int      -- ^ jump-if-true:    @if a then goto b@
-  | Jz  !Int !Int      -- ^ jump-if-false:   @if !a then goto b@
-  | Lt  !Int !Int !Int -- ^ less-than:       @c = a < b@
-  | Eq  !Int !Int !Int -- ^ equals:          @c = a == b@
-  | Arb !Int         -- ^ adjust-rel-base: @rel += a@
-  | Hlt             -- ^ halt
+  = Add !Integer !Integer !Integer -- ^ addition:        @c = a + b@
+  | Mul !Integer !Integer !Integer -- ^ multiplication:  @c = a * b@
+  | Inp !Integer                   -- ^ input:           @a = input()@
+  | Out !Integer                   -- ^ output:          @output(a)@
+  | Jnz !Integer !Integer          -- ^ jump-if-true:    @if a then goto b@
+  | Jz  !Integer !Integer          -- ^ jump-if-false:   @if !a then goto b@
+  | Lt  !Integer !Integer !Integer -- ^ less-than:       @c = a < b@
+  | Eq  !Integer !Integer !Integer -- ^ equals:          @c = a == b@
+  | Arb !Integer                   -- ^ adjust-rel-base: @rel += a@
+  | Hlt                            -- ^ halt
   deriving (Eq, Ord, Read, Show)
 
 -- | Decode an intruction
 --
 -- >>> decode (new [1002,4,3,4])
--- Mul (Pos 4) (Imm 3) (Pos 4)
+-- Mul 4 2 4
 decode :: Machine -> Opcode
 decode mach =
   let
