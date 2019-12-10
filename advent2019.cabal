@@ -19,6 +19,7 @@ library
     Advent.Queue
     Advent.Visualize
     Advent.Intcode
+    Advent.Intcode.Trace
 
   build-depends:       base        ^>= 4.13,
                        containers  ^>= 0.6,
@@ -93,6 +94,12 @@ executable Day08
 
 executable Day09
   main-is:             Day09.hs
+  build-depends:       advent2019, base, containers
+  hs-source-dirs:      execs
+  default-language:    Haskell2010
+
+executable Day10
+  main-is:             Day10.hs
   build-depends:       advent2019, base, containers
   hs-source-dirs:      execs
   default-language:    Haskell2010

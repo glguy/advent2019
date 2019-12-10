@@ -136,3 +136,9 @@ cardinality xs = Map.fromListWith (+) [ (x,1) | x <- xs ]
 -- [1,2,3]
 compose :: [a -> a] -> a -> a
 compose = foldr (.) id
+
+chunks :: Int -> [a] -> [[a]]
+chunks _ [] = []
+chunks n xs =
+  case splitAt n xs of
+    (a,b) -> a : chunks n b

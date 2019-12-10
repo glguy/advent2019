@@ -1,4 +1,5 @@
 {-# Language DeriveTraversable, BlockArguments, RecordWildCards, OverloadedStrings #-}
+{-# Options_GHC -O2 #-}
 {-|
 Module      : Advent.Intcode
 Description : Intcode interpreter
@@ -50,7 +51,7 @@ module Advent.Intcode
   Step(..), step,
 
   -- * Opcodes
-  Opcode(..), decode,
+  Mode(..), Opcode(..), decode,
   ) where
 
 import           Advent    (Parser, number, sepBy)
@@ -58,8 +59,6 @@ import           Data.Bool (bool)
 import           Data.Map (Map)
 import           Data.Traversable (mapAccumL)
 import qualified Data.Map as Map
-import           Text.Printf (printf)
-import           Data.List (intercalate)
 
 ------------------------------------------------------------------------
 -- High-level interface
@@ -178,7 +177,7 @@ step mach =
     toPtr i Rel = at i + relBase mach
 
     opcodeMode :: Opcode Mode
-    opcodeMode = decode (at (pc mach))
+    Just opcodeMode = decode (at (pc mach))
 
     impl opcode =
       case opcode of
@@ -224,33 +223,34 @@ data Opcode a
   | Hlt          -- ^ halt
   deriving (Eq, Ord, Read, Show, Functor, Foldable)
 
--- | Decode an intruction
+-- | Decode an instruction
 --
 -- >>> decode 1002
--- Mul Abs Imm Abs
-decode :: Integer -> Opcode Mode
-decode n = par <$> opcode
+-- Just (Mul Abs Imm Abs)
+decode :: Integer -> Maybe (Opcode Mode)
+decode n = traverse par =<< opcode
   where
     par i =
       case digit (i+1) n of
-        0 -> Abs
-        1 -> Imm
-        2 -> Rel
-        m -> error ("Bad parameter mode: " ++ show m)
+        0 -> Just Abs
+        1 -> Just Imm
+        2 -> Just Rel
+        _ -> Nothing
 
     opcode =
       case n `mod` 100 of
-        1  -> Add 1 2 3
-        2  -> Mul 1 2 3
-        3  -> Inp 1
-        4  -> Out 1
-        5  -> Jnz 1 2
-        6  -> Jz  1 2
-        7  -> Lt  1 2 3
-        8  -> Eq  1 2 3
-        9  -> Arb 1
-        99 -> Hlt
-        o  -> error ("Bad opcode " ++ show o)
+        _ | n < 0 -> Nothing
+        1  -> Just (Add 1 2 3)
+        2  -> Just (Mul 1 2 3)
+        3  -> Just (Inp 1)
+        4  -> Just (Out 1)
+        5  -> Just (Jnz 1 2)
+        6  -> Just (Jz  1 2)
+        7  -> Just (Lt  1 2 3)
+        8  -> Just (Eq  1 2 3)
+        9  -> Just (Arb 1)
+        99 -> Just Hlt
+        _  -> Nothing
 
 instance Traversable Opcode where
   {-# INLINE traverse #-}
