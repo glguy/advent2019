@@ -46,19 +46,8 @@ startup noun verb
 -- >>> check [1,9,10,3,2,3,11,0,99,30,40,50]
 -- [3500,9,10,70,2,3,11,0,99,30,40,50]
 runPgm :: Machine -> Machine
-runPgm = last . programTrace
-
--- | Run a program providing a list of intermediate states of the program.
---
--- >>> let pgm = [1,9,10,3,2,3,11,0,99,30,40,50]
--- >>> mapM_ (print . memoryList) (programTrace (new pgm))
--- [1,9,10,3,2,3,11,0,99,30,40,50]
--- [1,9,10,70,2,3,11,0,99,30,40,50]
--- [3500,9,10,70,2,3,11,0,99,30,40,50]
-programTrace :: Machine -> [Machine]
-programTrace pgm =
-  pgm :
-  case step pgm of
-    Step pgm'  -> programTrace pgm'
-    StepHalt _ -> []
-    _          -> error "Unexpected day step on day 2"
+runPgm mach =
+  case step mach of
+    Step mach'     -> runPgm mach'
+    StepHalt mach' -> mach'
+    _              -> error "Unexpected step on day 2"
