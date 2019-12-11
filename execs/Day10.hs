@@ -12,6 +12,7 @@ Maintainer  : emertens@gmail.com
 module Main (main) where
 
 import           Advent
+import           Advent.Coord
 import           Control.Applicative
 import           Data.List
 import           Data.Foldable
@@ -23,41 +24,37 @@ main :: IO ()
 main =
   do inp <- getParsedLines 10 (many (True <$ "#" <|> False <$ "."))
 
-     let m :: Set (Int,Int)
+     let m :: Set Coord
          m = Set.fromList
-                [ ((x,y)) | (y,row) <- zip [0..] inp, (x,True) <- zip [0..] row ]
+                [ (C y x) | (y,row) <- zip [0..] inp, (x,True) <- zip [0..] row ]
 
      let (base, vis) = maximumBy (comparing snd) [ (i, count (visible m i) m) | i <-  toList m ]
      print vis
-     let (x,y) = part2 base (Set.delete base m) !! 199
+     let C y x = part2 base (Set.delete base m) !! 199
      print (x * 100 + y)
-     print $ part2 base (Set.delete base m)
 
-part2 :: (Int,Int) -> Set (Int,Int) -> [(Int,Int)]
+part2 :: Coord -> Set Coord -> [Coord]
 part2 base m
   | Set.null m = []
   | otherwise  = these ++ part2 base (Set.difference m (Set.fromList these))
   where
     these = filter (visible m base) (sortOn (angle . sub base) (toList m))
 
-sub :: (Int,Int) -> (Int,Int) -> (Int,Int)
-sub (x,y) (u,v) = (u-x, v-y)
+sub :: Coord -> Coord -> Coord
+sub (C y x) (C v u) = C (v-y) (u-x)
 
--- |
+-- | Angle measure that sorts clockwise starting from 12 o'clock
 --
--- >>> angle (0,-1) < angle (1,0)
+-- >>> let ordered = [C (-1) 0,C (-1) 1,C 0 1,C 1 1,C 1 0,C 1 (-1),C 0 (-1),C (-1) (-1)]
+-- >>> sortOn angle ordered == ordered
 -- True
--- >>> angle (1,0) < angle (0,1)
--- True
--- >>> angle (0,1) < angle (-1,0)
--- True
-angle :: (Int,Int) -> Double
-angle (x,y) = - atan2 (fromIntegral x) (fromIntegral y)
+angle :: Coord -> Double
+angle (C y x) = - atan2 (fromIntegral x) (fromIntegral y)
 
-visible :: Set (Int, Int) -> (Int, Int) -> (Int, Int) -> Bool
+visible :: Set Coord -> Coord -> Coord -> Bool
 visible _ x y | x == y = False
-visible ast (x,y) (u,v) =
-  and [ Set.notMember (u + stepx * i, v + stepy * i) ast | i <- [1 .. steps-1] ]
+visible ast (C y x) (C v u) =
+  and [ Set.notMember (C (v + stepy * i) (u + stepx * i)) ast | i <- [1 .. steps-1] ]
   where
     dx = x - u
     dy = y - v
