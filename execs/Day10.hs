@@ -31,6 +31,7 @@ main =
      print vis
      let (x,y) = part2 base (Set.delete base m) !! 199
      print (x * 100 + y)
+     print $ part2 base (Set.delete base m)
 
 part2 :: (Int,Int) -> Set (Int,Int) -> [(Int,Int)]
 part2 base m
@@ -51,7 +52,7 @@ sub (x,y) (u,v) = (u-x, v-y)
 -- >>> angle (0,1) < angle (-1,0)
 -- True
 angle :: (Int,Int) -> Double
-angle (x,y) = atan2 (fromIntegral y) (fromIntegral x)
+angle (x,y) = - atan2 (fromIntegral x) (fromIntegral y)
 
 visible :: Set (Int, Int) -> (Int, Int) -> (Int, Int) -> Bool
 visible _ x y | x == y = False
