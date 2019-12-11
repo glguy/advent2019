@@ -39,6 +39,11 @@ below (C y x) = C (y+1)  x
 left  (C y x) = C  y    (x-1)
 right (C y x) = C  y    (x+1)
 
+turnLeft, turnRight, turnAround :: Coord -> Coord
+turnLeft  (C y x) = C (-x) y
+turnRight (C y x) = C x (-y)
+turnAround (C y x) = C (-y) (-x)
+
 -- | Compute the Manhattan distance between two coordinates
 manhattan :: Coord -> Coord -> Int
 manhattan (C x y) (C u v) = abs (x-u) + abs (y-v)
@@ -64,6 +69,9 @@ boundingBox t =
 
 origin :: Coord
 origin = C 0 0
+
+north :: Coord
+north = C (-1) 0
 
 addCoord :: Coord -> Coord -> Coord
 addCoord (C y x) (C v u) = C (y+v) (x+u)

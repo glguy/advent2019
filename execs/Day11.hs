@@ -12,52 +12,48 @@ Maintainer  : emertens@gmail.com
 module Main (main) where
 
 import           Advent
+import           Advent.Coord
 import           Advent.Intcode
 import           Data.Map (Map)
 import qualified Data.Map as Map
 
-type C = (Int,Int)
-
 main :: IO ()
 main =
   do [inp] <- getParsedLines 11 memoryParser
+
      let effect = run (new inp)
-     print $ Map.size $ driver Map.empty origin up effect
-     putStr $ draw $ driver (Map.singleton origin 1) origin up effect
+         run1   = robot origin north effect Map.empty
+         run2   = robot origin north effect (Map.singleton origin 1)
+         render = putStrLn . draw . fmap render1
 
-draw :: Map C Integer -> String
-draw pixels =
-  unlines
-    [ [ if Map.lookup (x,y) pixels == Just 1 then '█' else '░' | x <- [minx .. maxx]]
-    | y <- [miny .. maxy] ]
-  where
-    xs   = Map.keys pixels
-    minx = minimum (map fst xs)
-    miny = minimum (map snd xs)
-    maxx = maximum (map fst xs)
-    maxy = maximum (map snd xs)
+     render run1
+     print (Map.size run1)
+     render run2
 
-driver :: Map C Integer -> C -> C -> Effect -> Map C Integer
-driver paint here dir effect =
+render1 :: Integer -> Char
+render1 1 = '█'
+render1 0 = '░'
+render1 _ = 'X'
+
+robot :: Coord -> Coord -> Effect -> Map Coord Integer -> Map Coord Integer
+robot here dir effect paint =
   case effect of
     Halt -> paint
-    Input f -> driver paint here dir (f (Map.findWithDefault 0 here paint))
-    Output color (Output turn e) ->
-      driver paint' (add here dir') dir' e
+    Input f -> robot here dir (f (Map.findWithDefault 0 here paint)) paint
+    Output color (Output turn effect') -> robot here' dir' effect' paint'
       where
-        dir'
-          | turn == 0 = turnL dir
-          | otherwise = turnR dir
         paint' = Map.insert here color paint
+        dir'   = turnFn turn dir
+        here'  = addCoord here dir'
     _ -> error "bad robot"
 
-up, origin :: C
-up     = (0,-1)
-origin = (0,0)
+turnFn :: Integer -> Coord -> Coord
+turnFn 0 = turnLeft
+turnFn 1 = turnRight
+turnFn x = error ("Unexpected turn: " ++ show x)
 
-add :: C -> C -> C
-add (x,y) (u,v) = (x+u,y+v)
-
-turnL, turnR :: C -> C
-turnL (dx,dy) = (dy,-dx)
-turnR (dx,dy) = (-dy,dx)
+draw :: Map Coord Char -> String
+draw pixels = unlines [ [ pixel (C y x) | x <- [minx .. maxx]] | y <- [miny .. maxy] ]
+  where
+    pixel c = Map.findWithDefault ' ' c pixels
+    Just (C miny minx, C maxy maxx) = boundingBox (Map.keys pixels)

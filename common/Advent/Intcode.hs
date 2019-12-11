@@ -1,4 +1,4 @@
-{-# Language DeriveTraversable, BlockArguments, RecordWildCards, OverloadedStrings #-}
+{-# Language DeriveTraversable, OverloadedStrings #-}
 {-# Options_GHC -O2 #-}
 {-|
 Module      : Advent.Intcode
@@ -55,7 +55,6 @@ module Advent.Intcode
   ) where
 
 import           Advent    (Parser, number, sepBy)
-import           Data.Bool (bool)
 import           Data.Map (Map)
 import           Data.Traversable (mapAccumL)
 import qualified Data.Map as Map
@@ -85,11 +84,11 @@ effectList effect inputs =
 -- Machine state
 ------------------------------------------------------------------------
 
--- | Program memory
+-- | Machine state
 data Machine = Machine
-  { pc      :: !Integer
-  , relBase :: !Integer
-  , memory  :: !(Map Integer Integer)
+  { pc      :: !Integer               -- ^ program counter
+  , relBase :: !Integer               -- ^ relative base pointer
+  , memory  :: !(Map Integer Integer) -- ^ program memory
   }
 
 -- | Index memory at 0-based index
@@ -112,12 +111,17 @@ set ::
 set i 0 m = m { memory = Map.delete i   (memory m) }
 set i v m = m { memory = Map.insert i v (memory m) }
 
-adjustRelBase :: Integer -> Machine -> Machine
+-- | Update the relative base pointer by adding an offset to it.
+adjustRelBase :: Integer {- ^ offset -} -> Machine -> Machine
 adjustRelBase i mach = mach { relBase = relBase mach + i }
 
+-- | Set program counter to a new address.
 jmp :: Integer -> Machine -> Machine
 jmp i mach = mach { pc = i }
 
+-- | Generate a list representation of memory starting from
+-- zero. This can get big for sparsely filled memory using
+-- large addresses.
 memoryList :: Machine -> [Integer]
 memoryList mach
   | Map.null (memory mach) = []
@@ -137,9 +141,9 @@ memoryParser = number `sepBy` ","
 
 -- | Possible effects from running a machine
 data Effect
-  = Output !Integer Effect     -- ^ Output an integer
+  = Output !Integer Effect    -- ^ Output an integer
   | Input (Integer -> Effect) -- ^ Input an integer
-  | Halt                  -- ^ Halt execution
+  | Halt                      -- ^ Halt execution
 
 -- | Big-step semantics of virtual machine.
 run :: Machine -> Effect
@@ -181,18 +185,16 @@ step mach =
 
     impl opcode =
       case opcode of
-        Add a b c           -> Step . set c (at a + at b)
-        Mul a b c           -> Step . set c (at a * at b)
-        Inp a               -> StepIn . flip (set a)
-        Out a               -> StepOut (at a)
-        Jnz a b | at a == 0 -> Step
-                | otherwise -> Step . jmp (at b)
-        Jz  a b | at a /= 0 -> Step
-                | otherwise -> Step . jmp (at b)
-        Lt  a b c           -> Step . set c (bool 0 1 (at a <  at b))
-        Eq  a b c           -> Step . set c (bool 0 1 (at a == at b))
-        Arb a               -> Step . adjustRelBase (at a)
-        Hlt                 -> StepHalt
+        Add a b c -> Step . set c (at a + at b)
+        Mul a b c -> Step . set c (at a * at b)
+        Inp a     -> StepIn . flip (set a)
+        Out a     -> StepOut (at a)
+        Jnz a b   -> Step . if at a /= 0 then jmp (at b) else id
+        Jz  a b   -> Step . if at a == 0 then jmp (at b) else id
+        Lt  a b c -> Step . set c (if at a <  at b then 1 else 0)
+        Eq  a b c -> Step . set c (if at a == at b then 1 else 0)
+        Arb a     -> Step . adjustRelBase (at a)
+        Hlt       -> StepHalt
 
 mapWithIndex :: (Integer -> a -> b) -> Integer -> Opcode a -> (Integer, Opcode b)
 mapWithIndex f = mapAccumL (\i a -> (i+1, f i a))
@@ -223,7 +225,7 @@ data Opcode a
   | Hlt          -- ^ halt
   deriving (Eq, Ord, Read, Show, Functor, Foldable)
 
--- | Decode an instruction
+-- | Decode an instruction to determine the opcode and parameter modes.
 --
 -- >>> decode 1002
 -- Just (Mul Abs Imm Abs)
@@ -252,6 +254,7 @@ decode n = traverse par =<< opcode
         99 -> Just Hlt
         _  -> Nothing
 
+-- | Visits arguments from left to right.
 instance Traversable Opcode where
   {-# INLINE traverse #-}
   traverse f o =

@@ -7,7 +7,7 @@ import Data.List
 import Text.Printf
 import System.IO
 
-traceRun :: Machine -> IO ()
+traceRun :: Machine -> IO Machine
 traceRun mach =
   do printf "%8d: %s\n" (pc mach) (showCurrent mach)
      case step mach of
@@ -21,7 +21,7 @@ traceRun mach =
           do putStr "Output: "
              print o
              traceRun mach'
-       StepHalt _ -> return ()
+       StepHalt m -> return m
 
 showCurrent :: Machine -> String
 showCurrent mach =
@@ -58,7 +58,7 @@ mnemonic :: Opcode a -> String
 mnemonic o =
   case o of
     Add{} -> "add"
-    Mul{} -> "add"
+    Mul{} -> "mul"
     Inp{} -> "in"
     Out{} -> "out"
     Jnz{} -> "jnz"
