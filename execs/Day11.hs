@@ -13,45 +13,42 @@ module Main (main) where
 
 import           Advent
 import           Advent.Intcode
-import           Data.Set (Set)
-import qualified Data.Set as Set
+import           Data.Map (Map)
+import qualified Data.Map as Map
 
 type C = (Int,Int)
-
 
 main :: IO ()
 main =
   do [inp] <- getParsedLines 11 memoryParser
      let effect = run (new inp)
-     print $ Set.size $ fst $ driver Set.empty Set.empty origin up effect
-     putStr $ draw $ snd $ driver Set.empty (Set.singleton origin) origin up effect
+     print $ Map.size $ driver Map.empty origin up effect
+     putStr $ draw $ driver (Map.singleton origin 1) origin up effect
 
-draw :: Set C -> String
+draw :: Map C Integer -> String
 draw pixels =
   unlines
-    [ [ if Set.member (x,y) pixels then '█' else '░' | x <- [minx .. maxx]]
+    [ [ if Map.lookup (x,y) pixels == Just 1 then '█' else '░' | x <- [minx .. maxx]]
     | y <- [miny .. maxy] ]
   where
-    xs   = Set.toList pixels
+    xs   = Map.keys pixels
     minx = minimum (map fst xs)
     miny = minimum (map snd xs)
     maxx = maximum (map fst xs)
     maxy = maximum (map snd xs)
 
-driver :: Set C -> Set C -> C -> C -> Effect -> (Set C, Set C)
-driver pans whites here dir effect =
+driver :: Map C Integer -> C -> C -> Effect -> Map C Integer
+driver paint here dir effect =
   case effect of
-    Halt -> (pans, whites)
-    Input f -> driver pans whites here dir (f (if Set.member here whites then 1 else 0))
+    Halt -> paint
+    Input f -> driver paint here dir (f (Map.findWithDefault 0 here paint))
     Output color (Output turn e) ->
-      let dir'
-            | turn == 0 = turnL dir
-            | otherwise = turnR dir
-          whites'
-            | color == 1 = Set.insert here whites
-            | otherwise  = Set.delete here whites
-      in
-      driver (Set.insert here pans) whites' (add here dir') dir' e
+      driver paint' (add here dir') dir' e
+      where
+        dir'
+          | turn == 0 = turnL dir
+          | otherwise = turnR dir
+        paint' = Map.insert here color paint
     _ -> error "bad robot"
 
 up, origin :: C
