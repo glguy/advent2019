@@ -48,11 +48,11 @@ turnAround (C y x) = C (-y) (-x)
 manhattan :: Coord -> Coord -> Int
 manhattan (C x y) (C u v) = abs (x-u) + abs (y-v)
 
--- | Compute the cardinal neighbors of a coordinate: north, south, east, west
+-- | Compute the 4 cardinal neighbors of a coordinate: north, south, east, west
 cardinal :: Coord -> [Coord]
 cardinal c = c `seq` [above c, left c, right c, below c]
 
--- | Compute the cardinal neighbors of a coordinate: north, south, east, west
+-- | Compute the 8 cardinal neighbors and diagonal neighbors
 neighbors :: Coord -> [Coord]
 neighbors c = c `seq` [above c, left c, right c, below c,
                        above (left c), above (right c),

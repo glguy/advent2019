@@ -11,9 +11,9 @@ Maintainer  : emertens@gmail.com
 -}
 module Main (main) where
 
-import           Advent
+import           Advent (getParsedLines)
 import           Advent.Coord
-import           Advent.Intcode
+import           Advent.Intcode (Effect(..), run, new, memoryParser)
 import           Data.Map (Map)
 import qualified Data.Map as Map
 
@@ -21,39 +21,54 @@ main :: IO ()
 main =
   do [inp] <- getParsedLines 11 memoryParser
 
-     let effect = run (new inp)
-         run1   = robot origin north effect Map.empty
-         run2   = robot origin north effect (Map.singleton origin 1)
-         render = putStrLn . draw . fmap render1
+     let start  = robot origin north (run (new inp))
+         run1   = start Map.empty
+         run2   = start (Map.singleton origin 1)
+         render = putStrLn . draw . fmap paintChar
 
      render run1
      print (Map.size run1)
      render run2
 
-render1 :: Integer -> Char
-render1 1 = '█'
-render1 0 = '░'
-render1 _ = 'X'
-
-robot :: Coord -> Coord -> Effect -> Map Coord Integer -> Map Coord Integer
+-- | Run a painter robot to see what it paints.
+robot ::
+  Coord             {- ^ robot's location             -} ->
+  Coord             {- ^ robot's direction            -} ->
+  Effect            {- ^ control program effect       -} ->
+  Map Coord Integer {- ^ starting painted coordinates -} ->
+  Map Coord Integer {- ^ final painted coordinates    -}
 robot here dir effect paint =
   case effect of
+
     Halt -> paint
-    Input f -> robot here dir (f (Map.findWithDefault 0 here paint)) paint
+
+    Input f -> robot here dir effect' paint
+      where
+        color   = Map.findWithDefault 0 here paint
+        effect' = f color
+
     Output color (Output turn effect') -> robot here' dir' effect' paint'
       where
         paint' = Map.insert here color paint
         dir'   = turnFn turn dir
         here'  = addCoord here dir'
-    _ -> error "bad robot"
 
-turnFn :: Integer -> Coord -> Coord
+    Output _ _ -> error "Bad robot: outputs come in pairs"
+
+-- | Compute the turn function given a robot's output.
+turnFn :: Integer {- ^ robot turn output -} -> Coord -> Coord
 turnFn 0 = turnLeft
 turnFn 1 = turnRight
-turnFn x = error ("Unexpected turn: " ++ show x)
+turnFn x = error ("Unexpected turn command: " ++ show x)
+
+-- | Character representation of paint number.
+paintChar :: Integer -> Char
+paintChar 0 = '░'
+paintChar 1 = '█'
+paintChar x = error ("Unexpected paint color: " ++ show x)
 
 draw :: Map Coord Char -> String
-draw pixels = unlines [ [ pixel (C y x) | x <- [minx .. maxx]] | y <- [miny .. maxy] ]
+draw pixels = unlines [[pixel (C y x) | x <- [minx .. maxx]] | y <- [miny .. maxy]]
   where
     pixel c = Map.findWithDefault ' ' c pixels
     Just (C miny minx, C maxy maxx) = boundingBox (Map.keys pixels)
