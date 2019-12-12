@@ -1,12 +1,12 @@
 module Advent
   ( module Advent
-  , satisfy, anySingle, sepBy
+  , satisfy, anySingle, sepBy, manyTill
   ) where
 
 import System.Environment
 import Text.Printf
 import Data.Foldable (toList)
-import Text.Megaparsec (setInput, anySingle, satisfy, parse, Parsec, eof, sepBy)
+import Text.Megaparsec (setInput, anySingle, satisfy, parse, Parsec, eof, sepBy, manyTill)
 import Text.Megaparsec.Char (newline)
 import Text.Megaparsec.Char.Lexer (decimal, signed)
 import Text.Megaparsec.Error (errorBundlePretty)

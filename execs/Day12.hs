@@ -16,16 +16,21 @@ the way.
 -}
 module Main (main) where
 
-import Advent
-import Data.List
+import Advent (getParsedLines, Parser, manyTill, satisfy, number, sepBy)
+import Data.List (transpose, elemIndex, foldl')
+import Data.Char (isAlpha)
 
 parseMoon :: Parser [Int]
-parseMoon = (\x y z -> [x,y,z]) <$ "<x=" <*> number <* ", y=" <*> number <* ", z=" <*> number <* ">"
+parseMoon = "<" *> component `sepBy` ", " <* ">"
+  where
+    component = manyTill (satisfy isAlpha) "=" *> number
 
-data Particle = P !Int !Int
+-- | One-dimensional particle with a position and velocity.
+data Particle = P !Int !Int -- ^ position velocity
   deriving (Eq, Ord, Show)
 
-newParticle :: Int -> Particle
+-- | Build a stationary particle.
+newParticle :: Int {- ^ position -} -> Particle
 newParticle x = P x 0
 
 main :: IO ()
@@ -36,12 +41,14 @@ main =
 
          x1 = [ iterate stepParticles x !! 1000 | x <- xs ]
 
-     print $ sum $ map energy $ transpose x1
+     print (sum (map energy (transpose x1)))
 
      let xn = map (repeatLength . iterate stepParticles) xs
 
-     print (foldl1 lcm xn)
+     print (foldl' lcm 1 xn)
 
+-- | Compute the energy of a multi-dimensional particle given
+-- its dimensional components.
 energy :: [Particle] -> Int
 energy ps = sum [ abs x | P x _ <- ps ] * sum [ abs v | P _ v <- ps ]
 
@@ -50,12 +57,15 @@ repeatLength [] = error "repeatList: no cycle"
 repeatLength (x:xs) = 1 + n
   where Just n = elemIndex x xs
 
+-- | Advance a particle by its current velocity.
 move :: Particle -> Particle
 move (P x dx) = P (x+dx) dx
 
+-- | Single step of a one-dimensional, n-body system.
 stepParticles :: [Particle] -> [Particle]
 stepParticles ps = [ move (foldl' gravity p ps) | p <- ps ]
 
+-- | Apply gravity to the first particle based on the second.
 gravity :: Particle -> Particle -> Particle
 gravity (P x v) (P y _) = P x (v + g)
   where
