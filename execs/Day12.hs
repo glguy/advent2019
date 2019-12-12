@@ -8,7 +8,7 @@ Maintainer  : emertens@gmail.com
 
 <https://adventofcode.com/2019/day/12>
 
-The steping function is invertible, so any cycles must include
+The stepping function is invertible, so any cycles must include
 the starting point. This means to find a cycle we just search
 for the starting point rather than remembering all states along
 the way.
@@ -54,8 +54,7 @@ move :: Particle -> Particle
 move (P x dx) = P (x+dx) dx
 
 stepParticles :: [Particle] -> [Particle]
-stepParticles ps =
-   [ move (foldl' gravity p ps) | p <- ps ]
+stepParticles ps = [ move (foldl' gravity p ps) | p <- ps ]
 
 gravity :: Particle -> Particle -> Particle
 gravity (P x v) (P y _) = P x (v + g)
