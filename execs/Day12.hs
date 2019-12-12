@@ -8,18 +8,19 @@ Maintainer  : emertens@gmail.com
 
 <https://adventofcode.com/2019/day/12>
 
+The steping function is invertible, so any cycles must include
+the starting point. This means to find a cycle we just search
+for the starting point rather than remembering all states along
+the way.
+
 -}
 module Main (main) where
 
-import           Advent
-import           Data.List
-import qualified Data.Set as Set
+import Advent
+import Data.List
 
-parseMoon :: Parser Coord
-parseMoon = C <$ "<x=" <*> number <* ", y=" <*> number <* ", z=" <*> number <* ">"
-
-data Coord = C { getx, gety, getz :: !Int }
-  deriving Show
+parseMoon :: Parser [Int]
+parseMoon = (\x y z -> [x,y,z]) <$ "<x=" <*> number <* ", y=" <*> number <* ", z=" <*> number <* ">"
 
 data Particle = P !Int !Int
   deriving (Eq, Ord, Show)
@@ -31,32 +32,23 @@ main :: IO ()
 main =
   do inp <- getParsedLines 12 parseMoon
 
-     let xs = map (newParticle . getx) inp
-         ys = map (newParticle . gety) inp
-         zs = map (newParticle . getz) inp
+     let xs = transpose (map (map newParticle) inp)
 
-         x1 = iterate stepParticles xs !! 1000
-         y1 = iterate stepParticles ys !! 1000
-         z1 = iterate stepParticles zs !! 1000
+         x1 = [ iterate stepParticles x !! 1000 | x <- xs ]
 
-     print $ sum $ map energy $ transpose [x1, y1, z1]
+     print $ sum $ map energy $ transpose x1
 
-     let xn = repeatLength (iterate stepParticles xs)
-         yn = repeatLength (iterate stepParticles ys)
-         zn = repeatLength (iterate stepParticles zs)
+     let xn = map (repeatLength . iterate stepParticles) xs
 
-     print (foldl1 lcm [xn, yn, zn])
+     print (foldl1 lcm xn)
 
 energy :: [Particle] -> Int
 energy ps = sum [ abs x | P x _ <- ps ] * sum [ abs v | P _ v <- ps ]
 
-repeatLength :: Ord a => [a] -> Int
-repeatLength = go Set.empty
-  where
-    go seen (x:xs)
-      | Set.member x seen = Set.size seen
-      | otherwise         = go (Set.insert x seen) xs
-    go _ [] = error "No loop"
+repeatLength :: Eq a => [a] -> Int
+repeatLength [] = error "repeatList: no cycle"
+repeatLength (x:xs) = 1 + n
+  where Just n = elemIndex x xs
 
 move :: Particle -> Particle
 move (P x dx) = P (x+dx) dx
