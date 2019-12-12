@@ -38,7 +38,7 @@ part2 base m
   | Set.null m = []
   | otherwise  = these ++ part2 base (Set.difference m (Set.fromList these))
   where
-    these = filter (visible m base) (sortOn (angle . sub base) (toList m))
+    these = filter (visible m base) (sortOn (toAngle . sub base) (toList m))
 
 sub :: Coord -> Coord -> Coord
 sub (C y x) (C v u) = C (v-y) (u-x)
@@ -48,8 +48,8 @@ sub (C y x) (C v u) = C (v-y) (u-x)
 -- >>> let ordered = [C (-1) 0,C (-1) 1,C 0 1,C 1 1,C 1 0,C 1 (-1),C 0 (-1),C (-1) (-1)]
 -- >>> sortOn angle ordered == ordered
 -- True
-angle :: Coord -> Double
-angle (C y x) = - atan2 (fromIntegral x) (fromIntegral y)
+-- angle :: Coord -> Double
+-- angle (C y x) = - atan2 (fromIntegral x) (fromIntegral y)
 
 visible :: Set Coord -> Coord -> Coord -> Bool
 visible _ x y | x == y = False
@@ -62,3 +62,16 @@ visible ast (C y x) (C v u) =
 
     stepx = dx `div` steps
     stepy = dy `div` steps
+
+data Angle = Angle !Int !Rational -- quadrant and slope
+  deriving (Eq, Ord)
+
+toAngle :: Coord -> Angle
+toAngle (C 0 0) = Angle 0 0
+toAngle (C y x)
+  | x >= 0, y < 0 = mk 1 x (-y)
+  | y >= 0, x > 0 = mk 2 y x
+  | x <= 0, y > 0 = mk 3 (-x) y
+  | otherwise     = mk 4 (-y) (-x)
+  where
+     mk i a b = Angle i (fromIntegral a / fromIntegral b)
