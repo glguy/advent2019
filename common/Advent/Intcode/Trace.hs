@@ -21,7 +21,8 @@ traceRun mach =
           do putStr "Output: "
              print o
              traceRun mach'
-       StepHalt m -> return m
+       StepHalt -> return mach
+       StepFault -> fail ("Bad instruction at pc " ++ show (pc mach))
 
 showCurrent :: Machine -> String
 showCurrent mach =

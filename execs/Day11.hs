@@ -53,7 +53,7 @@ robot here dir effect paint =
         dir'   = turnFn turn dir
         here'  = addCoord here dir'
 
-    Output _ _ -> error "Bad robot: outputs come in pairs"
+    _ -> error "Bad program"
 
 -- | Compute the turn function given a robot's output.
 turnFn :: Integer {- ^ robot turn output -} -> Coord -> Coord

@@ -33,5 +33,3 @@ main =
      let pgm i = intCodeToList inp [i]
      print (pgm 1)
      print (pgm 2)
-
-

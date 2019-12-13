@@ -49,5 +49,5 @@ runPgm :: Machine -> Machine
 runPgm mach =
   case step mach of
     Step mach'     -> runPgm mach'
-    StepHalt mach' -> mach'
+    StepHalt       -> mach
     _              -> error "Unexpected step on day 2"

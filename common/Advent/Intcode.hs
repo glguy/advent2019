@@ -1,5 +1,4 @@
 {-# Language DeriveTraversable, OverloadedStrings #-}
-{-# Options_GHC -O2 #-}
 {-|
 Module      : Advent.Intcode
 Description : Intcode interpreter
@@ -59,6 +58,7 @@ import           Advent    (Parser, number, sepBy)
 import           Data.Map (Map)
 import           Data.Traversable (mapAccumL)
 import qualified Data.Map as Map
+import           Text.Show.Functions ()
 
 ------------------------------------------------------------------------
 -- High-level interface
@@ -80,6 +80,7 @@ effectList effect inputs =
             | otherwise      -> error "Not enough inputs"
     Output o e               -> o : effectList e inputs
     Halt                     -> []
+    Fault                    -> error "Bad instruction"
 
 ------------------------------------------------------------------------
 -- Machine state
@@ -146,6 +147,8 @@ data Effect
   = Output !Integer Effect    -- ^ Output an integer
   | Input (Integer -> Effect) -- ^ Input an integer
   | Halt                      -- ^ Halt execution
+  | Fault                     -- ^ Execution failure
+  deriving Show
 
 -- | Big-step semantics of virtual machine.
 run :: Machine -> Effect
@@ -154,7 +157,8 @@ run mach =
     Step mach'        -> run mach'
     StepOut out mach' -> Output out (run mach')
     StepIn f          -> Input (run . f)
-    StepHalt _        -> Halt
+    StepHalt          -> Halt
+    StepFault         -> Fault
 
 ------------------------------------------------------------------------
 -- Small-step semantics
@@ -165,25 +169,27 @@ data Step
   = Step    !Machine             -- ^ no effect
   | StepOut !Integer !Machine    -- ^ output
   | StepIn  (Integer -> Machine) -- ^ input
-  | StepHalt !Machine            -- ^ halt
+  | StepHalt                     -- ^ halt
+  | StepFault                    -- ^ bad instruction
+  deriving Show
 
 -- | Small-step semantics of virtual machine.
 step :: Machine -> Step
 step mach =
-  case mapWithIndex toPtr (pc mach + 1) $! opcodeMode of
-    (pc', opcode) -> impl opcode $! jmp pc' mach
+  case decode (at (pc mach)) of
+    Nothing -> StepFault
+    Just opcodeMode ->
+      case mapWithIndex toPtr (pc mach + 1) $! opcodeMode of
+        (pc', opcode) -> impl opcode $! jmp pc' mach
 
   where
     at :: Integer -> Integer
     at i = mach ! i
 
     toPtr :: Integer -> Mode -> Integer
-    toPtr i Imm = i
+    toPtr i Imm =    i
     toPtr i Abs = at i
     toPtr i Rel = at i + relBase mach
-
-    opcodeMode :: Opcode Mode
-    Just opcodeMode = decode (at (pc mach))
 
     impl opcode =
       case opcode of
@@ -196,7 +202,7 @@ step mach =
         Lt  a b c -> Step . set c (if at a <  at b then 1 else 0)
         Eq  a b c -> Step . set c (if at a == at b then 1 else 0)
         Arb a     -> Step . adjustRelBase (at a)
-        Hlt       -> StepHalt
+        Hlt       -> const StepHalt
 
 mapWithIndex :: (Integer -> a -> b) -> Integer -> Opcode a -> (Integer, Opcode b)
 mapWithIndex f = mapAccumL (\i a -> (i+1, f i a))
