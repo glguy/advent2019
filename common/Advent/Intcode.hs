@@ -12,6 +12,7 @@ This Intcode interpreter is defined across multiple Advent of Code days:
 * <https://adventofcode.com/2019/day/2>
 * <https://adventofcode.com/2019/day/5>
 * <https://adventofcode.com/2019/day/7>
+* <https://adventofcode.com/2019/day/9>
 
 This implementation works with the following passes:
 

@@ -19,6 +19,7 @@ import           Data.Foldable
 import           Data.Set (Set)
 import qualified Data.Set as Set
 import           Data.Ord (comparing)
+import           Data.Ratio ((%))
 
 main :: IO ()
 main =
@@ -43,7 +44,7 @@ part2 base m
 sub :: Coord -> Coord -> Coord
 sub (C y x) (C v u) = C (v-y) (u-x)
 
--- | Angle measure that sorts clockwise starting from 12 o'clock
+-- Angle measure that sorts clockwise starting from 12 o'clock
 --
 -- >>> let ordered = [C (-1) 0,C (-1) 1,C 0 1,C 1 1,C 1 0,C 1 (-1),C 0 (-1),C (-1) (-1)]
 -- >>> sortOn angle ordered == ordered
@@ -67,11 +68,11 @@ data Angle = Angle !Int !Rational -- quadrant and slope
   deriving (Eq, Ord)
 
 toAngle :: Coord -> Angle
-toAngle (C 0 0) = Angle 0 0
 toAngle (C y x)
-  | x >= 0, y < 0 = mk 1 x (-y)
-  | y >= 0, x > 0 = mk 2 y x
-  | x <= 0, y > 0 = mk 3 (-x) y
-  | otherwise     = mk 4 (-y) (-x)
+  | x == 0, y == 0 = Angle 0 0
+  | x >= 0, y < 0  = mk 1 x (-y)    -- upper right
+  | x <= 0, y > 0  = mk 3 (-x) y    -- lower left
+  | y >= 0         = mk 2 y x       -- lower right
+  | otherwise      = mk 4 (-y) (-x) -- upper left
   where
-     mk i a b = Angle i (fromIntegral a / fromIntegral b)
+     mk i a b = Angle i (fromIntegral a % fromIntegral b)
