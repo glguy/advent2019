@@ -91,6 +91,7 @@ data Machine = Machine
   , relBase :: !Integer               -- ^ relative base pointer
   , memory  :: !(Map Integer Integer) -- ^ program memory
   }
+  deriving (Eq, Ord, Show)
 
 -- | Index memory at 0-based index
 (!) :: Machine -> Integer -> Integer
@@ -101,7 +102,7 @@ new :: [Integer] -> Machine
 new initialValues = Machine
   { pc      = 0
   , relBase = 0
-  , memory  = Map.fromList (zip [0..] initialValues)
+  , memory  = Map.fromList [ (k,v) | (k,v) <- zip [0..] initialValues, v /= 0]
   }
 
 -- | Update the value stored at a given location in memory.
