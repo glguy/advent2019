@@ -1,4 +1,4 @@
-{-# Language OverloadedStrings #-}
+{-# Language BlockArguments, OverloadedStrings #-}
 {-|
 Module      : Main
 Description : Day 13 solution
@@ -12,57 +12,58 @@ Maintainer  : emertens@gmail.com
 module Main (main) where
 
 import           Advent
-import           Advent.Intcode
+import           Advent.Intcode as I
 import           Advent.Coord
+import           Control.Exception
 import           Data.Map (Map)
 import qualified Data.Map as Map
+import           Graphics.Vty
 
-import           System.IO
 
 main :: IO ()
 main =
   do [inp] <- getParsedLines 13 memoryParser
-     hSetBuffering stdin NoBuffering
-     hSetEcho stdin False
-     robot Map.empty (run $ set 0 2 $ new inp)
+     cfg   <- standardIOConfig
+     score <- bracket (mkVty cfg) shutdown \vty ->
+                game vty 0 Map.empty (run (set 0 2 (new inp)))
+     putStrLn ("Final score: " ++ show score)
+
 
 render :: Integer -> Char
 render 1 = '█'
-render 2 = '■'
-render 3 = '-'
-render 4 = '○'
+render 2 = '❑'
+render 3 = '―'
+render 4 = '●'
 render _ = ' '
 
-robot :: Map Coord Integer -> Effect -> IO ()
-robot tiles effect = do
+game :: Vty -> Integer -> Map Coord Char -> Effect -> IO Integer
+game vty score tiles effect =
   case effect of
 
-    Halt -> return ()
+    Halt -> return score
 
-    Output (-1) (Output 0 (Output t e)) ->
-      do putStrLn ("Score: " ++ show t)
-         robot tiles e
-    Output x (Output y (Output t e))
-      | t == 0 -> robot (Map.delete p tiles) e
-      | otherwise -> robot (Map.insert p t tiles) e
+    I.Output x (I.Output y (I.Output t e))
+      | -1 == x, 0 == y -> game vty t tiles e
+      | t == 0          -> game vty score (Map.delete p tiles) e
+      | otherwise       -> game vty score ((Map.insert p $! render t) tiles) e
       where p = C (fromIntegral y) (fromIntegral x)
 
-    Input f ->
-      do putStr (draw (fmap render tiles))
-         c <- getChar
-         case c of
-           'a' -> robot tiles (f (-1))
-           'd' -> robot tiles (f (1))
-           _   -> robot tiles (f 0)
+    I.Input f ->
+      do update vty (picForImage (draw score tiles))
+         e <- nextEvent vty
+         case e of
+           EvKey KLeft  [] -> game vty score tiles (f (-1))
+           EvKey KRight [] -> game vty score tiles (f 1)
+           _               -> game vty score tiles (f 0)
 
     _ -> error "bad program"
 
-draw :: Map Coord Char -> String
-draw pixels =
-  case  boundingBox (Map.keys pixels) of
-    Nothing -> ""
+draw :: Integer -> Map Coord Char -> Image
+draw score pixels =
+  case boundingBox (Map.keys pixels) of
+    Nothing -> emptyImage
     Just (C miny minx, C maxy maxx) ->
-       unlines [[pixel (C y x) | x <- [minx .. maxx]] | y <- [miny .. maxy]]
+      string defAttr ("Score: " ++ show score) <->
+      vertCat [ horizCat [pixel (C y x) | x <- [minx .. maxx]] | y <- [miny .. maxy]]
       where
-        pixel c = Map.findWithDefault ' ' c pixels
-
+        pixel c = char defAttr (Map.findWithDefault ' ' c pixels)
