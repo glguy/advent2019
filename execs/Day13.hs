@@ -1,5 +1,4 @@
 {-# Language BlockArguments, OverloadedStrings #-}
-{-# Options_GHC -w #-}
 {-|
 Module      : Main
 Description : Day 13 solution
@@ -14,22 +13,8 @@ module Main (main) where
 
 import           Advent
 import           Advent.Intcode
-import           Advent.Coord
-import           Control.Applicative
-import           Control.Monad
 import           Data.List
-import           Data.Maybe
-import           Data.Sequence (Seq)
-import qualified Data.Sequence as Seq
-import           Data.IntMap (IntMap)
-import qualified Data.IntMap as IntMap
-import           Data.Map (Map)
-import qualified Data.Map as Map
-import           Data.Set (Set)
 import qualified Data.Set as Set
-
-import           System.IO
-import           Control.Concurrent
 
 main :: IO ()
 main =
@@ -73,3 +58,5 @@ robot ball paddle score effect =
              | b < p -> f (-1)
              | b > p -> f 1
            _ -> f 0
+
+    _ -> error "bad program"
