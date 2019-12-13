@@ -59,4 +59,4 @@ robot ball paddle score effect =
              | b > p -> f 1
            _ -> f 0
 
-    _ -> error "bad program"
+    _ -> error "robot: bad program"
