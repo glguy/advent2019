@@ -12,6 +12,9 @@ copyright:           2019 Eric Mertens
 build-type:          Simple
 
 library
+  hs-source-dirs:      common
+  default-language:    Haskell2010
+
   exposed-modules:
     Advent
     Advent.Coord
@@ -20,17 +23,17 @@ library
     Advent.Visualize
     Advent.Intcode
     Advent.Intcode.Trace
+    Advent.Intcode.Conduino
 
-  build-depends:       base        ^>= 4.13,
-                       containers  ^>= 0.6,
-                       megaparsec  ^>= 8.0,
-                       vector      ^>= 0.12,
-                       JuicyPixels ^>= 3.3.2,
-                       array       ^>= 0.5.3,
-                       MemoTrie    ^>= 0.6.9,
-
-  hs-source-dirs:      common
-  default-language:    Haskell2010
+  build-depends:
+    base        ^>= 4.13,
+    array       ^>= 0.5.3,
+    conduino ^>= 0.2,
+    containers  ^>= 0.6,
+    JuicyPixels ^>= 3.3.2,
+    MemoTrie    ^>= 0.6.9,
+    megaparsec  ^>= 8.0,
+    vector      ^>= 0.12,
 
 test-suite doctests
   type:          exitcode-stdio-1.0
