@@ -1,0 +1,75 @@
+{-# Language BlockArguments, OverloadedStrings #-}
+{-# Options_GHC -w #-}
+{-|
+Module      : Main
+Description : Day 13 solution
+Copyright   : (c) Eric Mertens, 2019
+License     : ISC
+Maintainer  : emertens@gmail.com
+
+<https://adventofcode.com/2019/day/13>
+
+-}
+module Main (main) where
+
+import           Advent
+import           Advent.Intcode
+import           Advent.Coord
+import           Control.Applicative
+import           Control.Monad
+import           Data.List
+import           Data.Maybe
+import           Data.Sequence (Seq)
+import qualified Data.Sequence as Seq
+import           Data.IntMap (IntMap)
+import qualified Data.IntMap as IntMap
+import           Data.Map (Map)
+import qualified Data.Map as Map
+import           Data.Set (Set)
+import qualified Data.Set as Set
+
+import           System.IO
+import           Control.Concurrent
+
+main :: IO ()
+main =
+  do [inp] <- getParsedLines 13 memoryParser
+     let mach = new inp
+
+     print (part1 mach)
+     print (robot Nothing Nothing 0 (run (set 0 2 (new inp))))
+
+part1 :: Machine -> Int
+part1 = Set.size . foldl' write Set.empty . tileWrites . run
+  where
+    write blocks (x,y,2) = Set.insert (x,y) blocks
+    write blocks (x,y,_) = Set.delete (x,y) blocks
+
+tileWrites :: Effect -> [(Integer, Integer, Integer)]
+tileWrites effect =
+  case effect of
+    Halt                                   -> []
+    Output x (Output y (Output t effect')) -> (x,y,t) : tileWrites effect'
+    _                                      -> error "tileWrites: bad program"
+
+robot :: Maybe Integer -> Maybe Integer -> Integer -> Effect -> Integer
+robot ball paddle score effect =
+  case effect of
+
+    Halt -> score
+
+    Output (-1) (Output 0 (Output score' effect')) ->
+      robot ball paddle score' effect'
+
+    Output x (Output _ (Output t effect'))
+      | t == 3 -> robot ball (Just x) score effect'
+      | t == 4 -> robot (Just x) paddle score effect'
+      | otherwise -> robot ball paddle score effect'
+
+    Input f ->
+        robot ball paddle score
+         case (ball, paddle) of
+           (Just b, Just p)
+             | b < p -> f (-1)
+             | b > p -> f 1
+           _ -> f 0
