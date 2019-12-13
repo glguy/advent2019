@@ -52,6 +52,7 @@ game vty score tiles effect =
       do update vty (picForImage (draw score tiles))
          e <- nextEvent vty
          case e of
+           EvKey KEsc   [] -> return score
            EvKey KLeft  [] -> game vty score tiles (f (-1))
            EvKey KRight [] -> game vty score tiles (f 1)
            _               -> game vty score tiles (f 0)
