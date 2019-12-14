@@ -14,65 +14,94 @@ module Main (main) where
 import           Advent
 import           Control.Applicative
 import           Data.List
+import           Data.Map (Map)
 import qualified Data.Map as Map
 import           Data.Char (isAlpha)
-import           Data.Maybe (fromJust)
-import           Data.Graph.Inductive
 
+data Recipes = Recipes
+  { order :: [String]
+  , parts :: Map String (Int, [(Int, String)])
+  }
 
-parseItem :: Parser (Int, String)
-parseItem = (,) <$> number <* " " <*> many (satisfy isAlpha)
+type Reaction = ([Component], Component)
+type Component = (Int, String)
 
-parseItems :: Parser [(Int, String)]
+parseChemical :: Parser String
+parseChemical = some (satisfy isAlpha)
+
+parseItem :: Parser Component
+parseItem = (,) <$> number <* " " <*> parseChemical
+
+parseItems :: Parser [Component]
 parseItems = parseItem `sepBy` ", "
 
-parseFormula :: Parser ([(Int, String)], (Int, String))
-parseFormula = (,) <$> parseItems <* " => " <*> parseItem
+parseReaction :: Parser Reaction
+parseReaction = (,) <$> parseItems <* " => " <*> parseItem
 
 main :: IO ()
 main =
-  do inp <- getParsedLines 14 parseFormula
+  do inp <- getParsedLines 14 parseReaction
+     let recipes = mkRecipes inp
 
-     print (oreNeeded inp 1)
+     print (oreNeeded recipes 1)
 
-     let p i = oreNeeded inp i <= 1000000000000
+     let p i = oreNeeded recipes i <= 1000000000000
      print (binSearch p 1)
 
+oreNeeded :: Recipes -> Int {- ^ fuel amount -} -> Int {- ^ ore amount -}
+oreNeeded recipes n =
+  foldl' (react recipes) (Map.singleton "FUEL" n) (order recipes) Map.! "ORE"
 
-binSearch :: (Int -> Bool) -> Int -> Int
+react ::
+  Recipes ->
+  Map String Int {- ^ items needed   -} ->
+  String         {- ^ items to react -} ->
+  Map String Int {- ^ items needed   -}
+react recipes need item = Map.unionWith (+) need1 need2
+  where
+    needed = Map.findWithDefault 0 item need
+
+    (makes, needs) = parts recipes Map.! item
+    n = needed `divUp` makes
+
+    need1 = Map.delete item need
+    need2 = Map.fromListWith (+) [ (k,n*v) | (v,k) <- needs ]
+
+-- | Integer division that rounds up instead of down.
+divUp :: Integral a => a -> a -> a
+x `divUp` y = (x + y - 1) `div` y
+
+mkRecipes :: [Reaction] -> Recipes
+mkRecipes xs = Recipes
+  { order = sortOn depth [n | (_, (_,n)) <- xs ]
+  , parts = partsMap
+  }
+  where
+    partsMap       = Map.fromList [ (dst, (n, src))  | (src,(n,dst)) <- xs ]
+    toDepth (_,ys) = foldl' min 0 [ depth y | (_,y) <- ys ] - 1
+    depthMap       = fmap toDepth partsMap
+    depth x        = Map.findWithDefault (0::Int) x depthMap
+
+------------------------------------------------------------------------
+
+binSearch ::
+  (Int -> Bool) {- ^ predicate        -} ->
+  Int           {- ^ small enough     -} ->
+  Int           {- ^ largest possible -}
 binSearch p lo = go (lo+1)
   where
     go hi
-      | p hi = go (2*hi)
+      | p hi      = go (2*hi)
       | otherwise = binSearch2 p lo hi
 
-binSearch2 :: (Int -> Bool) -> Int -> Int -> Int
+binSearch2 ::
+  (Int -> Bool) {- ^ predicate    -} ->
+  Int           {- ^ small enough -} ->
+  Int           {- ^ too big      -} ->
+  Int
 binSearch2 p lo hi
   | lo + 1 == hi = lo
   | p mid        = binSearch2 p mid hi
   | otherwise    = binSearch2 p lo mid
   where
     mid = lo + (hi - lo) `div` 2
-
-oreNeeded inp n =
-  let m = Map.fromList [ (dst, (n, src))  | (src,(n,dst)) <- inp ] in
-  foldl' (compute m) (Map.singleton "FUEL" n) (recipeOrder inp) Map.! "ORE"
-
-compute recipes need item = Map.unionWith (+) need1 need2
-  where
-    needed = need Map.! item
-    need1 = Map.delete item need
-
-    (makes, needs) = recipes Map.! item
-    n = (needed + makes - 1) `div` makes
-    need2 = Map.fromList [ (k,n*v) | (v,k) <- needs ]
-
-
-recipeOrder xs = init (map (names!!) (topsort g))
-  where
-    names = [ name | (_,(_,name)) <- xs ] ++ ["ORE"]
-    toId name = fromJust (elemIndex name names)
-
-    g :: UGr
-    g = mkUGraph [0..length names-1]
-                 [(toId src, toId dst) | (es,(_,src)) <- xs, (_, dst) <- es ]

@@ -135,6 +135,6 @@ executable Breakout
 
 executable Day14
   main-is:             Day14.hs
-  build-depends:       advent2019, base, containers, fgl
+  build-depends:       advent2019, base, containers
   hs-source-dirs:      execs
   default-language:    Haskell2010
