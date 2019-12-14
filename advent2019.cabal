@@ -34,6 +34,7 @@ library
     MemoTrie    ^>= 0.6.9,
     megaparsec  ^>= 8.0,
     vector      ^>= 0.12,
+    transformers^>= 0.5,
 
 test-suite doctests
   type:          exitcode-stdio-1.0
@@ -129,5 +130,11 @@ executable Breakout
   main-is:             Breakout.hs
   ghc-options:         -threaded
   build-depends:       advent2019, base, containers, vty
+  hs-source-dirs:      execs
+  default-language:    Haskell2010
+
+executable Day14
+  main-is:             Day14.hs
+  build-depends:       advent2019, base, containers, fgl
   hs-source-dirs:      execs
   default-language:    Haskell2010
