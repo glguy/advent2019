@@ -1,3 +1,4 @@
+{-# Language RecordWildCards #-}
 {-|
 Module      : Main
 Description : Day 15 solution
@@ -16,25 +17,33 @@ import           Advent.Intcode
 import           Advent.Search
 import           Data.List
 
+data SearchState = SearchState
+  { onOxygen :: !Bool  -- ^ Is the robot currently on the oxygen
+  , distance :: !Int   -- ^ Commands issued so far
+  , location :: !Coord -- ^ robot's current location
+  , effect   :: Effect -- ^ robot control program state
+  }
+
 main :: IO ()
 main =
   do [inp] <- getParsedLines 15 memoryParser
 
-     let effect = run (new inp)
-         outs = bfsOn (\(_,_,c,_) -> c) step1 (False, 0, origin, effect)
-         Just (_, part1, oxygen, robot) = find (\(x,_,_,_)->x) outs
-     print part1
+     let outs = bfsOn location step1 (SearchState False 0 origin (run (new inp)))
+         Just part1 = find onOxygen outs
+     print (distance part1)
 
-     let (_,part2,_,_) = last $ bfsOn (\(_,_,c,_) -> c) step1 (True, 0, oxygen, robot)
-     print part2
+     -- restart the BFS from the oxygen location with distance counter reset
+     print $ distance $ last $ bfsOn location step1 part1{distance = 0}
 
 -- | Advance a robot one step, update its location
-step1 :: (Bool, Int, Coord, Effect) -> [(Bool, Int, Coord, Effect)]
-step1 (_, steps, here, Input f) =
-  do (i,g) <- [(1,above),(2,below),(3,left),(4,right)]
-     let here' = g here
-     case f i of
-       Output 1 e -> [(False, steps+1, here', e)]
-       Output 2 e -> [(True , steps+1, here', e)]
-       _          -> []
-step1 _ = error "Expected input"
+step1 :: SearchState -> [SearchState]
+step1 SearchState{..} =
+  case effect of
+    Input f ->
+      do (i,g)       <- [(1,above),(2,below),(3,left),(4,right)]
+         (oxygen, e) <- case f i of
+                          Output 1 e -> [(False, e)]
+                          Output 2 e -> [(True , e)]
+                          _          -> []
+         [SearchState oxygen (distance + 1) (g location) e]
+    _ -> error "Expected input"
