@@ -20,6 +20,7 @@ module Advent.PQueue
   -- * Query
   , Advent.PQueue.null
   , view
+  , viewWithPriority
   ) where
 
 import           Data.IntMap (IntMap)
@@ -76,7 +77,7 @@ insert k v (PQ q) = PQ (IntMap.alter aux k q)
     aux (Just vs) = Just (v:vs)
 
 -- | Match the lowest priority entry in a queue returning the corresponding
--- value and queue without that entry. See also: (':<|>')
+-- value and queue without that entry. See also: (':<|')
 view :: PQueue a -> Maybe (a, PQueue a)
 view (PQ q) =
   do ((k,xs),q1) <- IntMap.minViewWithKey q
@@ -85,6 +86,17 @@ view (PQ q) =
        [x] -> Just (x, PQ q1)
        x:xs -> let q2 = PQ (IntMap.insert k xs q1)
                in q2 `seq` Just (x,q2)
+
+-- | Match the lowest priority entry in a queue returning the corresponding
+-- priority, value and queue without that entry.
+viewWithPriority :: PQueue a -> Maybe (Int, a, PQueue a)
+viewWithPriority (PQ q) =
+  do ((k,xs),q1) <- IntMap.minViewWithKey q
+     case xs of
+       [] -> error "Advent.PQueue.view: Malformed queue"
+       [x] -> Just (k, x, PQ q1)
+       x:xs -> let q2 = PQ (IntMap.insert k xs q1)
+               in q2 `seq` Just (k,x,q2)
 
 -- | Construct a priority queue from a list of priorities and values.
 fromList :: [(Int, a)] -> PQueue a

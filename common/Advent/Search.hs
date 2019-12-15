@@ -1,12 +1,9 @@
 module Advent.Search where
 
-import Data.Foldable
-import Data.Set ( Set )
-import Data.IntSet ( IntSet )
-import Data.IntMap ( IntMap )
+import qualified Advent.PQueue as PQueue
+import           Data.Foldable
 import qualified Data.Set as Set
 import qualified Data.IntSet as IntSet
-import qualified Data.IntMap as IntMap
 
 {-# INLINE dfs #-}
 dfs :: Ord a => (a -> [a]) -> a -> [a]
@@ -55,13 +52,13 @@ astarOn ::
   (a -> [(a,Int,Int)]) {- ^ step function (new state, step cost, distance heuristic) -} ->
   a                    {- ^ starting state                                           -} ->
   [(a,Int)]            {- ^ list of states visited                                   -}
-astarOn rep nexts start = go Set.empty (IntMap.singleton 0 [(0,start)])
+astarOn rep nexts start = go Set.empty (PQueue.singleton 0 (0,start))
   where
 
     go seen work =
-      case pqueueNext work of
-        Nothing -> []
-        Just ((cost,x),work1)
+      case work of
+        PQueue.Empty -> []
+        (cost,x) PQueue.:<| work1
           | Set.member r seen -> go seen work1
           | otherwise         -> (x,cost) : go seen' work2
           where
@@ -71,19 +68,4 @@ astarOn rep nexts start = go Set.empty (IntMap.singleton 0 [(0,start)])
             addWork w (x',stepcost,heuristic) =
               let cost' = cost + stepcost
               in cost' `seq`
-                 pqueuePush (cost' + heuristic) (cost', x') w
-
-pqueuePush :: Int -> a -> IntMap [a] -> IntMap [a]
-pqueuePush k v = IntMap.alter aux k
-  where
-    aux Nothing = Just [v]
-    aux (Just vs) = Just (v:vs)
-
-pqueueNext :: IntMap [a] -> Maybe (a,IntMap [a])
-pqueueNext q =
-      do ((k,xs),q1) <- IntMap.minViewWithKey q
-         case xs of
-           [] -> error "Malformed queue"
-           [x] -> Just (x,q1)
-           x:xs -> let q2 = IntMap.insert k xs q1
-                   in q2 `seq` Just (x,q2)
+                 PQueue.insert (cost' + heuristic) (cost', x') w
