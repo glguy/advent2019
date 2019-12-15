@@ -19,6 +19,7 @@ library
     Advent
     Advent.Coord
     Advent.PQueue
+    Advent.Search
     Advent.Queue
     Advent.Visualize
     Advent.Intcode
@@ -129,12 +130,18 @@ executable Day13
 executable Breakout
   main-is:             Breakout.hs
   ghc-options:         -threaded
-  build-depends:       advent2019, base, containers, vty
+  build-depends:       advent2019, base, conduino, transformers, containers, vty
   hs-source-dirs:      execs
   default-language:    Haskell2010
 
 executable Day14
   main-is:             Day14.hs
+  build-depends:       advent2019, base, containers
+  hs-source-dirs:      execs
+  default-language:    Haskell2010
+
+executable Day15
+  main-is:             Day15.hs
   build-depends:       advent2019, base, containers
   hs-source-dirs:      execs
   default-language:    Haskell2010
