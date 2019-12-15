@@ -42,12 +42,9 @@ explore = bfsOn location step1
 -- | Advance a robot one step, update its location
 step1 :: SearchState -> [SearchState]
 step1 SearchState{..} =
-  case effect of
-    Input f ->
-      do (i,move)    <- [(1,above),(2,below),(3,left),(4,right)]
-         (oxygen, e) <- case f i of
-                          Output 1 e -> [(False, e)]
-                          Output 2 e -> [(True , e)]
-                          _          -> []
-         [SearchState oxygen (distance + 1) (move location) e]
-    _ -> error "Expected input"
+  [ SearchState (o == 2) (distance + 1) (move location) e
+    | Input f     <- [effect]
+    , (i,move)    <- [(1,above),(2,below),(3,left),(4,right)]
+    , Output o e  <- [f i]
+    , o == 1 || o == 2
+    ]
