@@ -1,6 +1,15 @@
+{-|
+Module      : Main
+Description : Generalized search functions
+Copyright   : (c) Eric Mertens, 2019
+License     : ISC
+Maintainer  : emertens@gmail.com
+
+-}
 module Advent.Search where
 
 import qualified Advent.PQueue as PQueue
+import qualified Advent.Queue  as Queue
 import           Data.Foldable
 import qualified Data.Set as Set
 import qualified Data.IntSet as IntSet
@@ -17,29 +26,47 @@ dfs next start = aux start (const []) Set.empty
 bfs :: Ord a => (a -> [a]) -> a -> [a]
 bfs = bfsOn id
 
+-- | Enumerate the reachable states in breadth-first order
+-- given a successor state function and initial state.
+--
+-- States are compared for equality using the representative
+-- function. If the representatives are equal the state is
+-- considered already visited.
 {-# INLINE [0] bfsOn #-}
-bfsOn :: Ord b => (a -> b) -> (a -> [a]) -> a -> [a]
-bfsOn rep next start = aux Set.empty [start] []
+bfsOn ::
+  Ord r =>
+  (a -> r)   {- ^ representative function   -} ->
+  (a -> [a]) {- ^ successor state generator -} ->
+  a          {- ^ initial state             -} ->
+  [a]        {- ^ reachable states          -}
+bfsOn rep next start = loop Set.empty (Queue.singleton start)
   where
-    aux _    [] [] = []
-    aux seen [] ys = aux seen (reverse ys) []
-    aux seen (x:xs) ys
-      | Set.member r seen = aux seen xs ys
-      | otherwise = x : aux (Set.insert r seen) xs (next x ++ ys)
-      where r = rep x
+    loop seen q =
+      case q of
+        Queue.Empty -> []
+        x Queue.:<| q1
+          | Set.member r seen ->     loop seen  q1
+          | otherwise         -> x : loop seen1 q2
+          where
+            r     = rep x
+            seen1 = Set.insert r seen
+            q2    = Queue.appendList (next x) q1
 
 {-# RULES "bfsOn/Int" bfsOn = bfsOnInt #-}
 {-# INLINE bfsOnInt #-}
 bfsOnInt :: (a -> Int) -> (a -> [a]) -> a -> [a]
-bfsOnInt rep next start = aux IntSet.empty [start] []
+bfsOnInt rep next start = loop IntSet.empty (Queue.singleton start)
   where
-    aux _    [] [] = []
-    aux seen [] ys = aux seen (reverse ys) []
-    aux seen (x:xs) ys
-      | IntSet.member x' seen = aux seen xs ys
-      | otherwise = x : aux (IntSet.insert x' seen) xs (next x ++ ys)
-      where
-        x' = rep x
+    loop seen q =
+      case q of
+        Queue.Empty -> []
+        x Queue.:<| q1
+          | IntSet.member r seen ->     loop seen  q1
+          | otherwise            -> x : loop seen1 q2
+          where
+            r     = rep x
+            seen1 = IntSet.insert r seen
+            q2    = Queue.appendList (next x) q1
 
 {-# INLINE astar #-}
 astar :: Ord a => (a -> [(a,Int,Int)]) -> a -> [(a,Int)]
@@ -54,7 +81,6 @@ astarOn ::
   [(a,Int)]            {- ^ list of states visited                                   -}
 astarOn rep nexts start = go Set.empty (PQueue.singleton 0 (0,start))
   where
-
     go seen work =
       case work of
         PQueue.Empty -> []
