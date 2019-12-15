@@ -24,7 +24,7 @@ main =
      let start  = robot origin north (run (new inp))
          run1   = start Map.empty
          run2   = start (Map.singleton origin 1)
-         render = putStrLn . draw . fmap paintChar
+         render = putStrLn . drawCoords . fmap paintChar
 
      render run1
      print (Map.size run1)
@@ -66,9 +66,3 @@ paintChar :: Integer -> Char
 paintChar 0 = '░'
 paintChar 1 = '█'
 paintChar x = error ("Unexpected paint color: " ++ show x)
-
-draw :: Map Coord Char -> String
-draw pixels = unlines [[pixel (C y x) | x <- [minx .. maxx]] | y <- [miny .. maxy]]
-  where
-    pixel c = Map.findWithDefault ' ' c pixels
-    Just (C miny minx, C maxy maxx) = boundingBox (Map.keys pixels)

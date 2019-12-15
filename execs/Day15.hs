@@ -11,11 +11,10 @@ Maintainer  : emertens@gmail.com
 -}
 module Main (main) where
 
-import           Advent
-import           Advent.Coord
-import           Advent.Intcode
-import           Advent.Search
-import           Data.List
+import Advent         (getParsedLines)
+import Advent.Coord   (Coord, above, below, left, right, origin)
+import Advent.Intcode (Effect(..), run, new, memoryParser)
+import Advent.Search  (bfsOn)
 
 data SearchState = SearchState
   { onOxygen :: !Bool  -- ^ Is the robot currently on the oxygen
@@ -29,11 +28,10 @@ newSearchState = SearchState False 0 origin . run . new
 
 main :: IO ()
 main =
-  do [inp] <- getParsedLines 15 memoryParser
-
-     let Just part1 = find onOxygen $ explore $ newSearchState inp
-     print $ distance part1
-     print $ distance $ last $ explore part1{distance = 0}
+  do [intcode] <- getParsedLines 15 memoryParser
+     let part1:_ = filter onOxygen (explore (newSearchState intcode))
+     print (distance part1)
+     print (distance (last (explore part1{distance = 0})))
 
 -- | Breadth-first exploration of the maze
 explore :: SearchState -> [SearchState]

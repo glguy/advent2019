@@ -9,11 +9,13 @@ Maintainer  : emertens@gmail.com
 {-# Language BangPatterns, TypeFamilies, TypeOperators, DeriveGeneric #-}
 module Advent.Coord where
 
-import Data.Foldable
-import Data.Ix
-import Data.MemoTrie
-import GHC.Arr
-import GHC.Generics
+import           Data.Foldable
+import           Data.Ix
+import           Data.Map (Map)
+import qualified Data.Map as Map
+import           Data.MemoTrie
+import           GHC.Arr
+import           GHC.Generics
 
 data Coord = C !Int !Int
   deriving (Read, Show, Ord, Eq, Generic)
@@ -81,3 +83,9 @@ instance HasTrie Coord where
   trie                 = trieGeneric CoordTrie
   untrie               = untrieGeneric unCoordTrie
   enumerate            = enumerateGeneric unCoordTrie
+
+drawCoords :: Map Coord Char -> String
+drawCoords pixels = unlines [[pixel (C y x) | x <- [minx .. maxx]] | y <- [miny .. maxy]]
+  where
+    pixel c = Map.findWithDefault ' ' c pixels
+    Just (C miny minx, C maxy maxx) = boundingBox (Map.keys pixels)

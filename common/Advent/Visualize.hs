@@ -14,7 +14,7 @@ module Advent.Visualize
   , writeAnimation
   , generateImage
 
-  , drawCoords
+  , coordsImage
 
   , colorWheel
   ) where
@@ -23,8 +23,8 @@ import Advent.Coord
 import Codec.Picture
 import Data.Word (Word8)
 
-drawCoords :: Pixel p => (Coord, Coord) -> (Coord -> p) -> Image p
-drawCoords (C loy lox, C hiy hix) f = generateImage toPixel width height
+coordsImage :: Pixel p => (Coord, Coord) -> (Coord -> p) -> Image p
+coordsImage (C loy lox, C hiy hix) f = generateImage toPixel width height
   where
     toPixel x y = f (C (loy+y) (lox+x))
     width       = hix - lox + 1
