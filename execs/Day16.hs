@@ -7,9 +7,6 @@ Maintainer  : emertens@gmail.com
 
 <https://adventofcode.com/2019/day/16>
 
-This code is not fast but if you let it run it will finish.
-I still want to figure out a more efficient solution.
-
 -}
 module Main (main) where
 
@@ -22,25 +19,28 @@ main =
   do [inp] <- getParsedLines 16 (many anySingle)
      let ns = digits inp
 
-     putStrLn $ concatMap show $ V.toList $ V.take 8 $ iterate fft ns !! 100
+     putStrLn $ concatMap show $ V.toList $ V.take 8 $ iterate (fft 0) ns !! 100
 
      let offset = read (take 7 inp)
 
      let ns' = V.concat (replicate 10000 ns)
-     putStrLn $ concatMap show $ V.toList $ V.take 8 $ V.drop offset $ iterate fft ns' !! 100
+     putStrLn $ concatMap show $ V.toList $ V.take 8 $ V.drop offset $ iterate (fft offset) ns' !! 100
 
 digits :: String -> V.Vector Int
 digits = V.fromList . map (read . pure)
 
-fft :: V.Vector Int -> V.Vector Int
-fft xs = V.generate (V.length xs) one
+fft :: Int -> V.Vector Int -> V.Vector Int
+fft offset xs = V.generate (V.length xs) one
   where
     n = V.length xs
     ps = V.scanl (+) 0 xs
     factors i = takeWhile (\(Region _ a _) -> a < n) (regions i)
 
-    one i = abs $ sum [ m * (ps V.! min n end - ps V.! start)     | Region m start end <- factors i]
-               `rem` 10
+    one i
+      | i < offset = 0
+      | otherwise = abs $ sum [ m * (ps V.! min n end - ps V.! start)
+                               | Region m start end <- factors i]
+                          `rem` 10
 
 data Region = Region !Int !Int !Int
   deriving Show
