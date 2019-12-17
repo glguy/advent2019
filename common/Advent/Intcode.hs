@@ -45,7 +45,7 @@ module Advent.Intcode
   Machine(..), (!), new, set, memoryList,
 
   -- * Effects
-  Effect(..), run,
+  Effect(..), run, (>>>),
 
   -- * Small-step
   Step(..), step,
@@ -159,6 +159,20 @@ run mach =
     StepIn f          -> Input (run . f)
     StepHalt          -> Halt
     StepFault         -> Fault
+
+-- | Compose two effects together. Outputs from first argument are
+-- used as inputs to the second effect. Composed effect halts when
+-- the second machine halts.
+(>>>) :: Effect -> Effect -> Effect
+x          >>> Output o y = Output o (x >>> y)
+_          >>> Halt       = Halt
+_          >>> Fault      = Fault
+Output o x >>> Input f    = x >>> f o
+Halt       >>> Input _    = Fault
+Fault      >>> Input _    = Fault
+Input f    >>> y          = Input (\i -> f i >>> y)
+
+infixl 9 >>>
 
 ------------------------------------------------------------------------
 -- Small-step semantics
