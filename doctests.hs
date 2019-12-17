@@ -16,5 +16,5 @@ main =
 processFiles :: [FilePath] -> [FilePath]
 processFiles
   = map ("execs"</>)
-  . filter (\x -> takeExtension x == ".hs")
+  . filter (\x -> "Day" `isPrefixOf` takeBaseName x && takeExtension x == ".hs")
   . sort

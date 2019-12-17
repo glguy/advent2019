@@ -16,8 +16,9 @@ This Intcode interpreter is defined across multiple Advent of Code days:
 This implementation works with the following passes:
 
   1. Parse input text file into a list of numbers
-  2. Execute op codes to extract the input/output "effects"
-  3. Evaluate the effect as a function from a list of inputs to list of outputs
+  2. Execute op codes to single-step input/output effects.
+  3. Execute single-stop effects into big-step effects.
+  4. Optional: Evaluate the effect as a function from a list of inputs to list of outputs
 
 >>> intCodeToList [3,12,6,12,15,1,13,14,13,4,13,99,-1,0,1,9] <$> [[0],[10]]
 [[0],[1]]
@@ -69,11 +70,14 @@ intCodeToList ::
   [Integer] {- ^ initial memory -} ->
   [Integer] {- ^ inputs         -} ->
   [Integer] {- ^ outputs        -}
-intCodeToList pgm = effectList (run (new pgm))
+intCodeToList = effectList . run . new
 
 -- | Evaluate a program's effect as a function from a list of
 -- inputs to a list of outputs.
-effectList :: Effect -> [Integer] {- ^ inputs -} -> [Integer] {- ^ outputs -}
+effectList ::
+  Effect    {- ^ program effect -} ->
+  [Integer] {- ^ inputs         -} ->
+  [Integer] {- ^ outputs        -}
 effectList effect inputs =
   case effect of
     Input f | x:xs <- inputs -> effectList (f x) xs
@@ -94,12 +98,18 @@ data Machine = Machine
   }
   deriving (Eq, Ord, Show)
 
--- | Index memory at 0-based index
-(!) :: Machine -> Integer -> Integer
+-- | Memory lookup from 0-based index
+(!) ::
+  Machine {- ^ machine  -} ->
+  Integer {- ^ position -} ->
+  Integer {- ^ value    -}
 m ! i = Map.findWithDefault 0 i (memory m)
 
--- | Construct memory from a list of initial values.
-new :: [Integer] -> Machine
+-- | Construct machine from a list of initial values starting
+-- at address 0. Program counter and relative base start at 0.
+new ::
+  [Integer] {- ^ initial memory -} ->
+  Machine   {- ^ new machine    -}
 new initialValues = Machine
   { pc      = 0
   , relBase = 0
@@ -119,12 +129,14 @@ adjustRelBase :: Integer {- ^ offset -} -> Machine -> Machine
 adjustRelBase i mach = mach { relBase = relBase mach + i }
 
 -- | Set program counter to a new address.
-jmp :: Integer -> Machine -> Machine
+jmp ::
+  Integer {- ^ program counter -} ->
+  Machine -> Machine
 jmp i mach = mach { pc = i }
 
 -- | Generate a list representation of memory starting from
 -- zero. This can get big for sparsely filled memory using
--- large addresses.
+-- large addresses. Returned values start at position 0.
 memoryList :: Machine -> [Integer]
 memoryList mach
   | Map.null (memory mach) = []
@@ -134,7 +146,7 @@ memoryList mach
 -- Parsing
 ------------------------------------------------------------------------
 
--- | Parse an Intcode program as a list of comma separated opcode integers.
+-- | Parse an Intcode program as a list of comma separated integers.
 memoryParser :: Parser [Integer]
 memoryParser = number `sepBy` ","
 
@@ -276,7 +288,7 @@ decode n = traverse par =<< opcode
         99 -> Just Hlt
         _  -> Nothing
 
--- | Visits arguments from left to right.
+-- | Arguments visited from left to right.
 instance Traversable Opcode where
   {-# INLINE traverse #-}
   traverse f o =
@@ -301,4 +313,4 @@ instance Traversable Opcode where
 -- >>> digit 4 2468
 -- 0
 digit :: Integer {- ^ position -} -> Integer {- ^ number -} -> Integer {- ^ digit -}
-digit i x = x `div` (10^i) `mod` 10
+digit i x = x `quot` (10^i) `rem` 10
