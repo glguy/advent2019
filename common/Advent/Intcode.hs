@@ -55,8 +55,8 @@ module Advent.Intcode
   Mode(..), Opcode(..), decode,
   ) where
 
-import           Advent    (Parser, number, sepBy)
-import           Data.Map (Map)
+import           Advent           (Parser, number, sepBy)
+import           Data.Map         (Map)
 import           Data.Traversable (mapAccumL)
 import qualified Data.Map as Map
 import           Text.Show.Functions ()
