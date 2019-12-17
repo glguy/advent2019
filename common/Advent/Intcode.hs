@@ -45,7 +45,7 @@ module Advent.Intcode
   Machine(..), (!), new, set, memoryList,
 
   -- * Effects
-  Effect(..), run, (>>>),
+  Effect(..), run, (>>>), effectList,
 
   -- * Small-step
   Step(..), step,
