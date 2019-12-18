@@ -57,6 +57,24 @@ bfsOn rep next start = loop Set.empty (Queue.singleton start)
         seen1 = Set.insert r seen
         q2    = Queue.appendList (next x) q1
 
+{-# INLINE [0] bfsOnN #-}
+bfsOnN ::
+  Ord r =>
+  (a -> r)   {- ^ representative function   -} ->
+  (a -> [a]) {- ^ successor state generator -} ->
+  [a]         {- ^ initial state             -} ->
+  [a]        {- ^ reachable states          -}
+bfsOnN rep next start = loop Set.empty (Queue.fromList start)
+  where
+    loop _ Queue.Empty = []
+    loop seen (x Queue.:<| q1)
+      | Set.member r seen =     loop seen  q1
+      | otherwise         = x : loop seen1 q2
+      where
+        r     = rep x
+        seen1 = Set.insert r seen
+        q2    = Queue.appendList (next x) q1
+
 {-# RULES "bfsOn/Int" bfsOn = bfsOnInt #-}
 {-# INLINE bfsOnInt #-}
 bfsOnInt :: (a -> Int) -> (a -> [a]) -> a -> [a]

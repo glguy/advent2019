@@ -77,12 +77,12 @@ compress acc a b c [] = [unlines [ intercalate "," (reverse acc)
 compress acc a b c xs =
   do (ys,zs) <- splits xs
      [ () | short ys ]
-     id [ xs | Just ys == a, xs <- compress ("A":acc) a b c zs ] ++
-        [ xs | Just ys == b, xs <- compress ("B":acc) a b c zs ] ++
-        [ xs | Just ys == c, xs <- compress ("C":acc) a b c zs ] ++
-        [ xs | isNothing a,                           xs <- compress ("A":acc) (Just ys) b c zs ] ++
-        [ xs | isJust    a, isNothing b,              xs <- compress ("B":acc) a (Just ys) c zs ] ++
-        [ xs | isJust    a, isJust    b, isNothing c, xs <- compress ("C":acc) a b (Just ys) zs ]
+     id [ z | Just ys == a, z <- compress ("A":acc) a b c zs ] ++
+        [ z | Just ys == b, z <- compress ("B":acc) a b c zs ] ++
+        [ z | Just ys == c, z <- compress ("C":acc) a b c zs ] ++
+        [ z | isNothing a,                           z <- compress ("A":acc) (Just ys) b c zs ] ++
+        [ z | isJust    a, isNothing b,              z <- compress ("B":acc) a (Just ys) c zs ] ++
+        [ z | isJust    a, isJust    b, isNothing c, z <- compress ("C":acc) a b (Just ys) zs ]
 
 short :: [(Dir,Int)] -> Bool
 short xs = length (instructions xs) <= 20
@@ -98,3 +98,4 @@ play (Output i Halt) = putStrLn ("<<" ++ show i ++ ">>")
 play (Output o e) = putChar (chr (fromIntegral o)) >> play e
 play (Input f) = getChar >>= play . f . fromIntegral . ord
 play Halt = return ()
+play Fault = return ()
