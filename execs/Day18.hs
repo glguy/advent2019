@@ -69,15 +69,15 @@ allKeys world start = astar stepAK (AllKeys start Set.empty)
         , (steps, loc, door) <- nextKeys world akDoors who
         ]
 
+------------------------------------------------------------------------
+-- Search that finds shortest distances to the remaining keys
+------------------------------------------------------------------------
+
 data FindKey = FindKey
   { fkSteps    :: !Int   -- ^ steps taken
   , fkLocation :: !Coord -- ^ current location
   }
   deriving Show
-
-------------------------------------------------------------------------
--- Search that finds shortest distances to the remaining keys
-------------------------------------------------------------------------
 
 nextKeys ::
   UArray Coord Char    {- ^ world map                            -} ->
