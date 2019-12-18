@@ -17,75 +17,92 @@ module Main (main) where
 import           Advent
 import           Advent.Coord
 import           Advent.Search
-import           Control.Applicative
 import           Data.List
 import           Data.Char
 import           Data.Set (Set)
 import qualified Data.Set as Set
-import           Control.Monad
 import           Data.Array.Unboxed
 
 main :: IO ()
 main =
-  do inp <- getParsedLines 18 (many anySingle)
-     let inp1 = [ (C y x, col)
-                 | (y,row) <- zip [0..] inp
-                 , (x,col) <- zip [0..] row ]
-         Just b = boundingBox (map fst inp1)
-         world = listArray b (map snd inp1)
-               :: UArray Coord Char
+  do inp <- coordLines <$> getInputLines 18
+     let Just b = boundingBox (map fst inp)
+         world1 = listArray b (map snd inp)
+         start  = head [k | (k,'@') <- inp]
+         keyN   = count (isLower . snd) inp
 
-     let start = head [ k | (k,'@') <- inp1 ]
-     let keyN = length (filter isLower (concat inp))
+         done s = Set.size (akDoors (fst s)) == keyN
+         select = snd . head . filter done
 
-     print $ find (\s -> Set.size (akKeys (fst s)) == keyN) $ allKeys world (Set.singleton start)
+     print (select (allKeys world1 (Set.singleton start)))
 
-     let world2 = world // [ (c,'#')  | c <- start : cardinal start ]
-         start2 = Set.fromList
-                  [ left (above start), right (above start),
-                    left (below start), right (below start) ]
+     let world2 = world1 // [(c,'#') | c <- start : cardinal start]
+         start2 = Set.fromList [ f (g start) | f <- [above, below]
+                                             , g <- [left , right] ]
 
-     print $ find (\s -> Set.size (akKeys (fst s)) == keyN) $ allKeys world2 start2
+     print (select (allKeys world2 start2))
+
+coordLines :: [String] -> [(Coord, Char)]
+coordLines rows = [(C y x, z) | (y,row) <- zip [0..] rows, (x,z) <- zip [0..] row]
+
+------------------------------------------------------------------------
+-- Search that moves robots from key to key
+------------------------------------------------------------------------
 
 data AllKeys = AllKeys
-  { akLocation :: !(Set Coord)
-  , akKeys     :: !(Set Char)
+  { akLocation :: !(Set Coord) -- ^ robot locations
+  , akDoors    :: !(Set Char)  -- ^ opened doors
   }
   deriving (Ord, Eq, Show)
 
-allKeys :: UArray Coord Char -> Set Coord -> [(AllKeys, Int)]
-allKeys world start =
-  astar stepAK (AllKeys start Set.empty)
+allKeys ::
+  UArray Coord Char {- ^ world map               -} ->
+  Set Coord         {- ^ robot locations         -} ->
+  [(AllKeys, Int)]  {- ^ search states and costs -}
+allKeys world start = astar stepAK (AllKeys start Set.empty)
   where
     stepAK AllKeys{..} =
-      do who   <- Set.toList akLocation
-         (s,k) <- nextKeys world akKeys who
-         [ (AllKeys
-             (Set.insert (fkLocation s) (Set.delete who akLocation))
-             (Set.insert k akKeys)
-           , fkSteps s
-           , 0) ]
+      [ (AllKeys (Set.insert loc (Set.delete who akLocation))
+                 (Set.insert door akDoors)
+        , steps {- cost -}, 0 {- heuristic -} )
+        | who <- Set.toList akLocation
+        , (steps, loc, door) <- nextKeys world akDoors who
+        ]
 
 data FindKey = FindKey
-  { fkSteps    :: !Int
-  , fkLocation :: !Coord
+  { fkSteps    :: !Int   -- ^ steps taken
+  , fkLocation :: !Coord -- ^ current location
   }
   deriving Show
 
-nextKeys :: UArray Coord Char -> Set Char -> Coord -> [ (FindKey, Char) ]
+------------------------------------------------------------------------
+-- Search that finds shortest distances to the remaining keys
+------------------------------------------------------------------------
+
+nextKeys ::
+  UArray Coord Char    {- ^ world map                            -} ->
+  Set Char             {- ^ open doors                           -} ->
+  Coord                {- ^ starting point                       -} ->
+  [(Int, Coord, Char)] {- ^ list of steps, location, door opened -}
 nextKeys world found start =
-  [ (s,k')
-      | s <- bfsOn fkLocation stepFK (FindKey 0 start)
-      , let k = world ! fkLocation s
-      , isLower k
-      , let k' = toUpper k
-      , Set.notMember k' found ]
+  [ (fkSteps, fkLocation, door)
+      | FindKey{..} <- bfsOn fkLocation stepFK (FindKey 0 start)
+      , let key = world ! fkLocation
+      , isLower key              -- only stop on keys
+      , let door = toUpper key
+      , Set.notMember door found -- but not keys we already have
+      ]
   where
     stepFK FindKey{..} =
-      do guard (let k = world ! fkLocation in
-                k < 'a' || 'z' < k || Set.member (toUpper k) found)
-         here <- cardinal fkLocation
-         case world ! here of
-           '#' -> []
-           a | 'A' <= a, a <= 'Z', Set.notMember a found -> []
-           _ -> [FindKey (fkSteps+1) here]
+      [ FindKey (fkSteps+1) here
+
+         -- Don't step over a key you haven't picked up yet
+         | let k = world ! fkLocation
+         , k < 'a' || 'z' < k || Set.member (toUpper k) found
+
+         -- Take a step but don't stop on a wall or a closed door
+         , here <- cardinal fkLocation
+         , let cell = world ! here
+         , cell /= '#'
+         , cell < 'A' || 'Z' < cell || Set.member cell found
+         ]
