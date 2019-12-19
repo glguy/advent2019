@@ -46,7 +46,7 @@ module Advent.Intcode
   Machine(..), (!), new, set, memoryList,
 
   -- * Effects
-  Effect(..), run, (>>>), effectList,
+  Effect(..), run, (>>>), effectList, followedBy, feedInput,
 
   -- * Small-step
   Step(..), step,
@@ -185,6 +185,22 @@ Fault      >>> Input _    = Fault
 Input f    >>> y          = Input (\i -> f i >>> y)
 
 infixl 9 >>>
+
+-- | Run first effect until it halts, then run the second effect.
+followedBy :: Effect -> Effect -> Effect
+followedBy Halt         y = y
+followedBy Fault        _ = Fault
+followedBy (Output o x) y = Output o (followedBy x y)
+followedBy (Input  f  ) y = Input (\i -> followedBy (f i) y)
+
+-- | Provide an input to the first occurence of an input request
+-- in a program effect. It is considered a fault if a program
+-- terminates before using the input.
+feedInput :: [Integer] -> Effect -> Effect
+feedInput []     e            = e
+feedInput xs     (Output o e) = Output o (feedInput xs e)
+feedInput (x:xs) (Input f)    = feedInput xs (f x)
+feedInput _ _                 = Fault
 
 ------------------------------------------------------------------------
 -- Small-step semantics
