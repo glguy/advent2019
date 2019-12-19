@@ -1,0 +1,30 @@
+{-# Language OverloadedStrings #-}
+{-|
+Module      : Main
+Description : Day 19 solution
+Copyright   : (c) Eric Mertens, 2019
+License     : ISC
+Maintainer  : emertens@gmail.com
+
+<https://adventofcode.com/2019/day/19>
+
+-}
+module Main (main) where
+
+import Advent         (getParsedLines)
+import Advent.Intcode (memoryParser, intCodeToList)
+import Data.List      (find)
+
+main :: IO ()
+main =
+  do [inp] <- getParsedLines 19 memoryParser
+     let f x y = 1 == head (intCodeToList inp [x,y])
+     print $ length [ () | x <- [0..49], y <- [0..49], f x y]
+     print $ part2 f 0 100
+
+part2 :: (Integer -> Integer -> Bool) -> Integer -> Integer -> Integer
+part2 f x0 y
+  | f (x+99) (y-99) = x * 10000 + y - 99
+  | otherwise       = part2 f x (y+1)
+  where
+    Just x = find (`f` y) [x0..]
