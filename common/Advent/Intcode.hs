@@ -94,21 +94,24 @@ effectList effect inputs =
 
 -- | Machine state
 data Machine = Machine
-  { pc      :: !Int          -- ^ program counter
-  , relBase :: !Int          -- ^ relative base pointer
-  , memory  :: !(IntMap Int) -- ^ program memory
-  , image   :: {-# Unpack #-} !(V.Vector Int)
+  { pc      :: !Int                           -- ^ program counter
+  , relBase :: !Int                           -- ^ relative base pointer
+  , memory  :: !(IntMap Int)                  -- ^ memory updates
+  , image   :: {-# Unpack #-} !(V.Vector Int) -- ^ initial memory
   }
   deriving (Eq, Ord, Show)
+
+-- | Value stored in initial memory image at given index.
+originalVal :: Machine -> Int -> Int
+originalVal m i = fromMaybe 0 (image m V.!? i)
+{-# INLINE originalVal #-}
 
 -- | Memory lookup from 0-based index
 (!) ::
   Machine {- ^ machine  -} ->
   Int     {- ^ position -} ->
   Int     {- ^ value    -}
-m ! i = IntMap.findWithDefault def i (memory m)
-  where
-    def = fromMaybe 0 (image m V.!? i)
+m ! i = IntMap.findWithDefault (originalVal m i) i (memory m)
 
 -- | Construct machine from a list of initial values starting
 -- at address 0. Program counter and relative base start at 0.
@@ -128,10 +131,10 @@ set ::
   Int {- ^ new value -} ->
   Machine -> Machine
 set i v m
-  | v == def  = m { memory = IntMap.delete i   (memory m) }
+  | v == o    = m { memory = IntMap.delete i   (memory m) }
   | otherwise = m { memory = IntMap.insert i v (memory m) }
   where
-    def = fromMaybe 0 (image m V.!? i)
+    o = originalVal m i
 
 -- | Update the relative base pointer by adding an offset to it.
 adjustRelBase :: Int {- ^ offset -} -> Machine -> Machine
@@ -148,9 +151,11 @@ jmp i mach = mach { pc = i }
 -- large addresses. Returned values start at position 0.
 memoryList :: Machine -> [Int]
 memoryList mach
-  | IntMap.null (memory mach) = []
-  | otherwise = map (mach !) [0 .. max (V.length (image mach) - 1)
-                                       (fst (IntMap.findMax (memory mach)))]
+  | IntMap.null (memory mach) = V.toList (image mach)
+  | otherwise                 = [mach ! i | i <- [0 .. top]]
+  where
+    top = max (V.length (image mach) - 1)
+              (fst (IntMap.findMax (memory mach)))
 
 ------------------------------------------------------------------------
 -- Parsing
@@ -228,13 +233,14 @@ data Step
 -- | Small-step semantics of virtual machine.
 step :: Machine -> Step
 step mach =
-  case decode (at (pc mach)) of
-    Nothing -> StepFault
-    Just opcodeMode ->
-      case mapWithIndex toPtr (pc mach + 1) $! opcodeMode of
-        (pc', opcode) -> impl opcode $! jmp pc' mach
+  case populateParams <$> decode (at (pc mach)) of
+    Nothing            -> StepFault
+    Just (pc', opcode) -> impl opcode $! jmp pc' mach
 
   where
+    populateParams :: Opcode Mode -> (Int, Opcode Int)
+    populateParams = mapWithIndex toPtr (pc mach + 1)
+
     at :: Int -> Int
     at i = mach ! i
 
@@ -243,6 +249,7 @@ step mach =
     toPtr i Abs = at i
     toPtr i Rel = at i + relBase mach
 
+    impl :: Opcode Int -> Machine -> Step
     impl opcode =
       case opcode of
         Add a b c -> Step . set c (at a + at b)
