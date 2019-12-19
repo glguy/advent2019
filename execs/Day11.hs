@@ -32,11 +32,11 @@ main =
 
 -- | Run a painter robot to see what it paints.
 robot ::
-  Coord             {- ^ robot's location             -} ->
-  Coord             {- ^ robot's direction            -} ->
-  Effect            {- ^ control program effect       -} ->
-  Map Coord Integer {- ^ starting painted coordinates -} ->
-  Map Coord Integer {- ^ final painted coordinates    -}
+  Coord         {- ^ robot's location             -} ->
+  Coord         {- ^ robot's direction            -} ->
+  Effect        {- ^ control program effect       -} ->
+  Map Coord Int {- ^ starting painted coordinates -} ->
+  Map Coord Int {- ^ final painted coordinates    -}
 robot here dir effect paint =
   case effect of
 
@@ -56,13 +56,13 @@ robot here dir effect paint =
     _ -> error "Bad program"
 
 -- | Compute the turn function given a robot's output.
-turnFn :: Integer {- ^ robot turn output -} -> Coord -> Coord
+turnFn :: Int {- ^ robot turn output -} -> Coord -> Coord
 turnFn 0 = turnLeft
 turnFn 1 = turnRight
 turnFn x = error ("Unexpected turn command: " ++ show x)
 
 -- | Character representation of paint number.
-paintChar :: Integer -> Char
+paintChar :: Int -> Char
 paintChar 0 = '░'
 paintChar 1 = '█'
 paintChar x = error ("Unexpected paint color: " ++ show x)

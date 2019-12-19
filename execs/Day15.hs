@@ -31,7 +31,7 @@ data SearchState = SearchState
   }
 
 -- | Initial search state starting from assumed non-oxygen at the origin.
-newSearchState :: [Integer] {- ^ intcode -} -> SearchState
+newSearchState :: [Int] {- ^ intcode -} -> SearchState
 newSearchState = SearchState False 0 origin . run . new
 
 -- | Breadth-first exploration of the maze

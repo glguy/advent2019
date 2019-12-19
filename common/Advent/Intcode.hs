@@ -56,10 +56,12 @@ module Advent.Intcode
   ) where
 
 import           Advent           (Parser, number, sepBy)
-import           Data.Map         (Map)
+import           Data.IntMap         (IntMap)
 import           Data.Traversable (mapAccumL)
-import qualified Data.Map as Map
+import qualified Data.IntMap as IntMap
+import qualified Data.Vector.Unboxed as V
 import           Text.Show.Functions ()
+import           Data.Maybe (fromMaybe)
 
 ------------------------------------------------------------------------
 -- High-level interface
@@ -67,17 +69,17 @@ import           Text.Show.Functions ()
 
 -- | Run a given memory image as a list transducer.
 intCodeToList ::
-  [Integer] {- ^ initial memory -} ->
-  [Integer] {- ^ inputs         -} ->
-  [Integer] {- ^ outputs        -}
+  [Int] {- ^ initial memory -} ->
+  [Int] {- ^ inputs         -} ->
+  [Int] {- ^ outputs        -}
 intCodeToList = effectList . run . new
 
 -- | Evaluate a program's effect as a function from a list of
 -- inputs to a list of outputs.
 effectList ::
-  Effect    {- ^ program effect -} ->
-  [Integer] {- ^ inputs         -} ->
-  [Integer] {- ^ outputs        -}
+  Effect {- ^ program effect -} ->
+  [Int]  {- ^ inputs         -} ->
+  [Int]  {- ^ outputs        -}
 effectList effect inputs =
   case effect of
     Input f | x:xs <- inputs -> effectList (f x) xs
@@ -92,62 +94,70 @@ effectList effect inputs =
 
 -- | Machine state
 data Machine = Machine
-  { pc      :: !Integer               -- ^ program counter
-  , relBase :: !Integer               -- ^ relative base pointer
-  , memory  :: !(Map Integer Integer) -- ^ program memory
+  { pc      :: !Int          -- ^ program counter
+  , relBase :: !Int          -- ^ relative base pointer
+  , memory  :: !(IntMap Int) -- ^ program memory
+  , image   :: {-# Unpack #-} !(V.Vector Int)
   }
   deriving (Eq, Ord, Show)
 
 -- | Memory lookup from 0-based index
 (!) ::
   Machine {- ^ machine  -} ->
-  Integer {- ^ position -} ->
-  Integer {- ^ value    -}
-m ! i = Map.findWithDefault 0 i (memory m)
+  Int     {- ^ position -} ->
+  Int     {- ^ value    -}
+m ! i = IntMap.findWithDefault def i (memory m)
+  where
+    def = fromMaybe 0 (image m V.!? i)
 
 -- | Construct machine from a list of initial values starting
 -- at address 0. Program counter and relative base start at 0.
 new ::
-  [Integer] {- ^ initial memory -} ->
-  Machine   {- ^ new machine    -}
+  [Int]   {- ^ initial memory -} ->
+  Machine {- ^ new machine    -}
 new initialValues = Machine
   { pc      = 0
   , relBase = 0
-  , memory  = Map.fromList [ (k,v) | (k,v) <- zip [0..] initialValues, v /= 0]
+  , memory  = IntMap.empty
+  , image   = V.fromList initialValues
   }
 
 -- | Update the value stored at a given location in memory.
 set ::
-  Integer {- ^ position  -} ->
-  Integer {- ^ new value -} ->
+  Int {- ^ position  -} ->
+  Int {- ^ new value -} ->
   Machine -> Machine
-set i 0 m = m { memory = Map.delete i   (memory m) }
-set i v m = m { memory = Map.insert i v (memory m) }
+set i v m
+  | v == def  = m { memory = IntMap.delete i   (memory m) }
+  | otherwise = m { memory = IntMap.insert i v (memory m) }
+  where
+    def = fromMaybe 0 (image m V.!? i)
 
 -- | Update the relative base pointer by adding an offset to it.
-adjustRelBase :: Integer {- ^ offset -} -> Machine -> Machine
+adjustRelBase :: Int {- ^ offset -} -> Machine -> Machine
 adjustRelBase i mach = mach { relBase = relBase mach + i }
 
 -- | Set program counter to a new address.
 jmp ::
-  Integer {- ^ program counter -} ->
+  Int {- ^ program counter -} ->
   Machine -> Machine
 jmp i mach = mach { pc = i }
 
 -- | Generate a list representation of memory starting from
 -- zero. This can get big for sparsely filled memory using
 -- large addresses. Returned values start at position 0.
-memoryList :: Machine -> [Integer]
+memoryList :: Machine -> [Int]
 memoryList mach
-  | Map.null (memory mach) = []
-  | otherwise = map (mach !) [0 .. fst (Map.findMax (memory mach))]
+  | IntMap.null (memory mach) = []
+  | otherwise = map (mach !) [0 .. max (V.length (image mach) - 1)
+                                       (fst (IntMap.findMax (memory mach)))]
 
 ------------------------------------------------------------------------
 -- Parsing
 ------------------------------------------------------------------------
 
 -- | Parse an Intcode program as a list of comma separated integers.
-memoryParser :: Parser [Integer]
+memoryParser :: Parser [Int]
 memoryParser = number `sepBy` ","
 
 ------------------------------------------------------------------------
@@ -156,10 +166,10 @@ memoryParser = number `sepBy` ","
 
 -- | Possible effects from running a machine
 data Effect
-  = Output !Integer Effect    -- ^ Output an integer
-  | Input (Integer -> Effect) -- ^ Input an integer
-  | Halt                      -- ^ Halt execution
-  | Fault                     -- ^ Execution failure
+  = Output !Int Effect    -- ^ Output an integer
+  | Input (Int -> Effect) -- ^ Input an integer
+  | Halt                  -- ^ Halt execution
+  | Fault                 -- ^ Execution failure
   deriving Show
 
 -- | Big-step semantics of virtual machine.
@@ -196,7 +206,7 @@ followedBy (Input  f  ) y = Input (\i -> followedBy (f i) y)
 -- | Provide an input to the first occurence of an input request
 -- in a program effect. It is considered a fault if a program
 -- terminates before using the input.
-feedInput :: [Integer] -> Effect -> Effect
+feedInput :: [Int] -> Effect -> Effect
 feedInput []     e            = e
 feedInput xs     (Output o e) = Output o (feedInput xs e)
 feedInput (x:xs) (Input f)    = feedInput xs (f x)
@@ -208,11 +218,11 @@ feedInput _ _                 = Fault
 
 -- | Result of small-step semantics.
 data Step
-  = Step    !Machine             -- ^ no effect
-  | StepOut !Integer !Machine    -- ^ output
-  | StepIn  (Integer -> Machine) -- ^ input
-  | StepHalt                     -- ^ halt
-  | StepFault                    -- ^ bad instruction
+  = Step    !Machine         -- ^ no effect
+  | StepOut !Int !Machine    -- ^ output
+  | StepIn  (Int -> Machine) -- ^ input
+  | StepHalt                 -- ^ halt
+  | StepFault                -- ^ bad instruction
   deriving Show
 
 -- | Small-step semantics of virtual machine.
@@ -225,10 +235,10 @@ step mach =
         (pc', opcode) -> impl opcode $! jmp pc' mach
 
   where
-    at :: Integer -> Integer
+    at :: Int -> Int
     at i = mach ! i
 
-    toPtr :: Integer -> Mode -> Integer
+    toPtr :: Int -> Mode -> Int
     toPtr i Imm =    i
     toPtr i Abs = at i
     toPtr i Rel = at i + relBase mach
@@ -246,7 +256,7 @@ step mach =
         Arb a     -> Step . adjustRelBase (at a)
         Hlt       -> const StepHalt
 
-mapWithIndex :: (Integer -> a -> b) -> Integer -> Opcode a -> (Integer, Opcode b)
+mapWithIndex :: (Int -> a -> b) -> Int -> Opcode a -> (Int, Opcode b)
 mapWithIndex f = mapAccumL (\i a -> (i+1, f i a))
 {-# INLINE mapWithIndex #-}
 
@@ -279,7 +289,7 @@ data Opcode a
 --
 -- >>> decode 1002
 -- Just (Mul Abs Imm Abs)
-decode :: Integer -> Maybe (Opcode Mode)
+decode :: Int -> Maybe (Opcode Mode)
 decode n = traverse par =<< opcode
   where
     par i =
@@ -328,5 +338,5 @@ instance Traversable Opcode where
 -- 2
 -- >>> digit 4 2468
 -- 0
-digit :: Integer {- ^ position -} -> Integer {- ^ number -} -> Integer {- ^ digit -}
+digit :: Int {- ^ position -} -> Int {- ^ number -} -> Int {- ^ digit -}
 digit i x = x `quot` (10^i) `rem` 10

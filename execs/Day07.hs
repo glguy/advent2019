@@ -25,7 +25,7 @@ import Data.Function  (fix)
 import Data.List      (permutations)
 
 -- | A function from a list of input values to a list of output values.
-type ListFn = [Integer] -> [Integer]
+type ListFn = [Int] -> [Int]
 
 main :: IO ()
 main =
@@ -44,8 +44,8 @@ main =
 -- >>> part1 (intCodeToList [3,31,3,32,1002,32,10,32,1001,31,-2,31,1007,31,0,33,1002,33,7,33,1,33,31,31,1,32,31,31,4,31,99,0,0,0])
 -- 65210
 part1 ::
-  ListFn  {- ^ amplifier controller software   -} ->
-  Integer {- ^ maximum initial thruster output -}
+  ListFn {- ^ amplifier controller software   -} ->
+  Int    {- ^ maximum initial thruster output -}
 part1 pgm = maximum [head (thrustController pgm p) | p <- permutations [0..4]]
 
 -- | Run the given amplitude controller in a feedback loop across
@@ -61,8 +61,8 @@ part1 pgm = maximum [head (thrustController pgm p) | p <- permutations [0..4]]
 -- >>> :}
 -- 18216
 part2 ::
-  ListFn  {- ^ amplifier controller software -} ->
-  Integer {- ^ maximum final thruster output -}
+  ListFn {- ^ amplifier controller software -} ->
+  Int    {- ^ maximum final thruster output -}
 part2 pgm = maximum [last (thrustController pgm p) | p <- permutations [5..9]]
 
 -- | Given a amplifier controller software function and a list of
@@ -88,8 +88,8 @@ thrustController ctrl phases = tieknot [ctrl << p | p <- phases]
 -- >>> tieknot [map (2*), map (1+), take 5]
 -- [1,3,7,15,31]
 tieknot ::
-  [ListFn]  {- ^ initialized amplifier controllers -} ->
-  [Integer] {- ^ thruster outputs                  -}
+  [ListFn] {- ^ initialized amplifier controllers -} ->
+  [Int]    {- ^ thruster outputs                  -}
 tieknot fs = fix (composeLR fs << 0)
 
 -- | Compose list functions from left-to-right. Inputs go into
@@ -104,5 +104,5 @@ composeLR = foldl (flip (.)) id
 --
 -- >>> (map (*2) << 10) [5,6,7]
 -- [20,10,12,14]
-(<<) :: ListFn -> Integer -> ListFn
+(<<) :: ListFn -> Int -> ListFn
 (f << x) xs = f (x:xs)

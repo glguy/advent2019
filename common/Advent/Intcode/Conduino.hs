@@ -25,13 +25,13 @@ isOK :: Outcome -> Bool
 isOK OutcomeOK    = True
 isOK OutcomeFault = False
 
-intcodePipe :: [Integer] {- ^ intcode -} -> Pipe Integer Integer Void m Outcome
+intcodePipe :: [Int] {- ^ intcode -} -> Pipe Int Int Void m Outcome
 intcodePipe = machinePipe . new
 
-machinePipe :: Machine -> Pipe Integer Integer Void m Outcome
+machinePipe :: Machine -> Pipe Int Int Void m Outcome
 machinePipe = effectPipe . run
 
-effectPipe :: Effect -> Pipe Integer Integer u m Outcome
+effectPipe :: Effect -> Pipe Int Int u m Outcome
 effectPipe Halt         = return OutcomeOK
 effectPipe Fault        = return OutcomeFault
 effectPipe (Output o e) = yield o >> effectPipe e
@@ -41,16 +41,16 @@ effectPipe (Input  f  ) =
        Left _  -> return OutcomeFault
        Right x -> effectPipe (f x)
 
-pipeEffect :: Pipe Integer Integer u (Cont Effect) Outcome -> Effect
+pipeEffect :: Pipe Int Int u (Cont Effect) Outcome -> Effect
 pipeEffect pipe = runCont (runPipe (inputs .| pipe .| outputs)) finish
   where
     finish OutcomeOK    = Halt
     finish OutcomeFault = Fault
 
-    outputs :: Pipe Integer o a (Cont Effect) a
+    outputs :: Pipe Int o a (Cont Effect) a
     outputs = awaitForever \o -> lift $ shift \k -> return $ Output o $ k ()
 
-    inputs :: Pipe i Integer u (Cont Effect) a
+    inputs :: Pipe i Int u (Cont Effect) a
     inputs =
       forever
         do i <- lift $ shift \k -> return $ Input k

@@ -24,7 +24,7 @@ main =
                  , startup noun verb pgm == 19690720 ])
 
 -- | Run the given program after assigning the given noun and verb.
-startup :: Integer {- ^ noun -} -> Integer {- ^ verb -} -> Machine -> Integer
+startup :: Int {- ^ noun -} -> Int {- ^ verb -} -> Machine -> Int
 startup noun verb
   = (! 0)
   . runPgm

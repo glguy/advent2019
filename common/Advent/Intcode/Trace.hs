@@ -34,7 +34,7 @@ showCurrent mach =
     showArg i Abs = ' ' : '[' : show (mach ! i) ++ "]"
     showArg i Rel = ' ' : '<' : show (mach ! i) ++ ">"
 
-showLocal :: Integer -> String
+showLocal :: Int -> String
 showLocal i =
   case decode i of
     Nothing -> "<invalid>"
@@ -44,7 +44,7 @@ showLocal i =
     showArg Abs = " abs"
     showArg Rel = " rel"
 
-showRow :: [Integer] -> [String]
+showRow :: [Int] -> [String]
 showRow xs =
   [ intercalate " " [ printf "%16d" x | x <- xs]
   , intercalate " " [ printf "%16s" (showLocal x) | x <- xs]

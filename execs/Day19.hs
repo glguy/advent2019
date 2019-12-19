@@ -22,7 +22,7 @@ main =
      print $ length [ () | x <- [0..49], y <- [0..49], f x y]
      print $ part2 f 0 100
 
-part2 :: (Integer -> Integer -> Bool) -> Integer -> Integer -> Integer
+part2 :: (Int -> Int -> Bool) -> Int -> Int -> Int
 part2 f x0 y
   | f (x+99) (y-99) = x * 10000 + y - 99
   | otherwise       = part2 f x (y+1)

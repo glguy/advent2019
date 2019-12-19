@@ -30,14 +30,14 @@ part1 = Set.size . foldl' write Set.empty . tileWrites . run
     write blocks (x,y,2) = Set.insert (x,y) blocks
     write blocks (x,y,_) = Set.delete (x,y) blocks
 
-tileWrites :: Effect -> [(Integer, Integer, Integer)]
+tileWrites :: Effect -> [(Int, Int, Int)]
 tileWrites effect =
   case effect of
     Halt                                   -> []
     Output x (Output y (Output t effect')) -> (x,y,t) : tileWrites effect'
     _                                      -> error "tileWrites: bad program"
 
-robot :: Maybe Integer -> Maybe Integer -> Integer -> Effect -> Integer
+robot :: Maybe Int -> Maybe Int -> Int -> Effect -> Int
 robot ball paddle score effect =
   case effect of
 

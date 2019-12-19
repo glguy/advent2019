@@ -37,7 +37,7 @@ main =
 at :: Coord -> Map Coord Char -> Char
 at = Map.findWithDefault '.'
 
-part2 :: [Integer] -> Map Coord Char -> Integer
+part2 :: [Int] -> Map Coord Char -> Int
 part2 inp world =
      last $ effectList (run (set 0 2 (new inp)))
           $ map (fromIntegral . ord) input
