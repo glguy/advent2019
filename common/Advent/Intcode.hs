@@ -296,30 +296,31 @@ data Opcode a
 --
 -- >>> decode 1002
 -- Just (Mul Abs Imm Abs)
-decode :: Int -> Maybe (Opcode Mode)
-decode n = traverse par =<< opcode
+decode :: Int {- ^ opcode -} -> Maybe (Opcode Mode)
+decode n =
+  case n `rem` 100 of
+    1  -> fill (Add 1 2 3)
+    2  -> fill (Mul 1 2 3)
+    3  -> fill (Inp 1)
+    4  -> fill (Out 1)
+    5  -> fill (Jnz 1 2)
+    6  -> fill (Jz  1 2)
+    7  -> fill (Lt  1 2 3)
+    8  -> fill (Eq  1 2 3)
+    9  -> fill (Arb 1)
+    99 -> fill Hlt
+    _  -> Nothing
   where
-    par i =
-      case digit (i+1) n of
-        0 -> Just Abs
-        1 -> Just Imm
-        2 -> Just Rel
-        _ -> Nothing
+    fill = traverse (parameter n)
 
-    opcode =
-      case n `mod` 100 of
-        _ | n < 0 -> Nothing
-        1  -> Just (Add 1 2 3)
-        2  -> Just (Mul 1 2 3)
-        3  -> Just (Inp 1)
-        4  -> Just (Out 1)
-        5  -> Just (Jnz 1 2)
-        6  -> Just (Jz  1 2)
-        7  -> Just (Lt  1 2 3)
-        8  -> Just (Eq  1 2 3)
-        9  -> Just (Arb 1)
-        99 -> Just Hlt
-        _  -> Nothing
+-- | Compute the parameter mode for an argument at a given position.
+parameter :: Int {- ^ opcode -} -> Int {- ^ position -} -> Maybe Mode
+parameter n i =
+  case digit (i+1) n of
+    0 -> Just Abs
+    1 -> Just Imm
+    2 -> Just Rel
+    _ -> Nothing
 
 -- | Arguments visited from left to right.
 instance Traversable Opcode where
