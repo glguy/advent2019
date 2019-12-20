@@ -89,3 +89,6 @@ drawCoords pixels = unlines [[pixel (C y x) | x <- [minx .. maxx]] | y <- [miny 
   where
     pixel c = Map.findWithDefault ' ' c pixels
     Just (C miny minx, C maxy maxx) = boundingBox (Map.keys pixels)
+
+coordLines :: [String] -> [(Coord, Char)]
+coordLines rows = [(C y x, z) | (y,row) <- zip [0..] rows, (x,z) <- zip [0..] row]

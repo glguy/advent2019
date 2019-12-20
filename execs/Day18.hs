@@ -20,9 +20,9 @@ import           Advent.Search
 import           Data.Char
 import           Data.Set (Set)
 import qualified Data.Set as Set
-import           Data.Array.Unboxed
 import qualified Data.Map as Map
 import           Data.Map (Map)
+import           Data.Array.Unboxed
 
 main :: IO ()
 main =
@@ -42,9 +42,6 @@ main =
                                              , g <- [left , right] ]
 
      print (select (allKeys world2 start2))
-
-coordLines :: [String] -> [(Coord, Char)]
-coordLines rows = [(C y x, z) | (y,row) <- zip [0..] rows, (x,z) <- zip [0..] row]
 
 ------------------------------------------------------------------------
 -- Search that moves robots from key to key
