@@ -1,4 +1,4 @@
-{-# Language RecordWildCards, OverloadedStrings #-}
+{-# Language OverloadedStrings #-}
 {-|
 Module      : Main
 Description : Day 5 solution

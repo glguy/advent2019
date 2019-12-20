@@ -17,11 +17,12 @@ module Main (main) where
 import           Advent
 import           Advent.Coord
 import           Advent.Search
-import           Data.List
 import           Data.Char
 import           Data.Set (Set)
 import qualified Data.Set as Set
 import           Data.Array.Unboxed
+import qualified Data.Map as Map
+import           Data.Map (Map)
 
 main :: IO ()
 main =
@@ -61,48 +62,49 @@ allKeys ::
   [(AllKeys, Int)]  {- ^ search states and costs -}
 allKeys world start = astar stepAK (AllKeys start Set.empty)
   where
+    summaries = travelSummary world (Set.toList start)
+
     stepAK AllKeys{..} =
       [ (AllKeys (Set.insert loc (Set.delete who akLocation))
-                 (Set.insert door akDoors)
-        , steps {- cost -}, 0 {- heuristic -} )
+                 doors'
+        , cost {- cost -}, 0)
         | who <- Set.toList akLocation
-        , (steps, loc, door) <- nextKeys world akDoors who
+        , (loc, key, doors, cost) <- Map.findWithDefault undefined who summaries
+        , Set.notMember key akDoors
+        , doors `Set.isSubsetOf` akDoors
+        , let doors' = Set.insert key akDoors
         ]
 
 ------------------------------------------------------------------------
 -- Search that finds shortest distances to the remaining keys
 ------------------------------------------------------------------------
 
-data FindKey = FindKey
-  { fkSteps    :: !Int   -- ^ steps taken
-  , fkLocation :: !Coord -- ^ current location
+data Shortest = Shortest
+  { sSteps    :: !Int   -- ^ steps taken
+  , sLocation :: !Coord -- ^ current location
+  , sDoors    :: !(Set Char)
   }
   deriving Show
 
-nextKeys ::
-  UArray Coord Char    {- ^ world map                            -} ->
-  Set Char             {- ^ open doors                           -} ->
-  Coord                {- ^ starting point                       -} ->
-  [(Int, Coord, Char)] {- ^ list of steps, location, door opened -}
-nextKeys world found start =
-  [ (fkSteps, fkLocation, door)
-      | FindKey{..} <- bfsOn fkLocation stepFK (FindKey 0 start)
-      , let key = world ! fkLocation
-      , isLower key              -- only stop on keys
-      , let door = toUpper key
-      , Set.notMember door found -- but not keys we already have
-      ]
+travelSummary :: UArray Coord Char -> [Coord] -> Map Coord [(Coord, Char, Set Char, Int)]
+travelSummary world starts =
+  Map.fromList $
+    [(start, travelFrom start) | start <- starts] ++
+    [(start, travelFrom start) | (start, startKey) <- assocs world , isLower startKey]
   where
-    stepFK FindKey{..} =
-      [ FindKey (fkSteps+1) here
+    travelFrom start =
+      [ (sLocation s, toUpper k, sDoors s, sSteps s)
+         | s <- bfsOn sLocation step1 (Shortest 0 start Set.empty)
+         , let k = world ! sLocation s
+         , isLower k ]
 
-         -- Don't step over a key you haven't picked up yet
-         | let k = world ! fkLocation
-         , k < 'a' || 'z' < k || Set.member (toUpper k) found
+    step1 Shortest{..} =
+      [ Shortest (sSteps+1) here doors'
 
-         -- Take a step but don't stop on a wall or a closed door
-         , here <- cardinal fkLocation
+         -- Take a step but don't stop on a wall
+         | here <- cardinal sLocation
          , let cell = world ! here
          , cell /= '#'
-         , cell < 'A' || 'Z' < cell || Set.member cell found
+         , let doors' | 'A' <= cell, cell <= 'Z' = Set.insert cell sDoors
+                      | otherwise = sDoors
          ]

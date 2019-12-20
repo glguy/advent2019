@@ -1,5 +1,3 @@
-{-# Language OverloadedStrings #-}
-{-# Options_GHC -w #-}
 {-|
 Module      : Main
 Description : Day 9 solution
@@ -21,20 +19,8 @@ Maintainer  : emertens@gmail.com
 -}
 module Main (main) where
 
-import           Advent
-import           Advent.Intcode
-import           Control.Applicative
-import           Control.Monad
-import           Data.List
-import           Data.Sequence (Seq)
-import qualified Data.Sequence as Seq
-import           Data.IntMap (IntMap)
-import qualified Data.IntMap as IntMap
-import           Data.Map (Map)
-import qualified Data.Map as Map
-import           Data.Set (Set)
-import qualified Data.Set as Set
-
+import Advent         (getParsedLines)
+import Advent.Intcode (intCodeToList, memoryParser)
 
 main :: IO ()
 main =

@@ -64,7 +64,7 @@ executable Day01
 
 executable Day02
   main-is:             Day02.hs
-  build-depends:       advent2019, base, containers
+  build-depends:       advent2019, base
   hs-source-dirs:      execs
   default-language:    Haskell2010
 
@@ -142,13 +142,13 @@ executable Day14
 
 executable Day15
   main-is:             Day15.hs
-  build-depends:       advent2019, base, containers
+  build-depends:       advent2019, base
   hs-source-dirs:      execs
   default-language:    Haskell2010
 
 executable Day16
   main-is:             Day16.hs
-  build-depends:       advent2019, base, containers, vector
+  build-depends:       advent2019, base, vector
   hs-source-dirs:      execs
   default-language:    Haskell2010
 
