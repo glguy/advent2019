@@ -32,16 +32,27 @@ main =
          links = findLinks labels
          jumps = shortcuts world (concat labels)
 
+         outside = mkIsOutside labels
+
          layerChange p
-           | inside p  = 1
-           | otherwise = -1
+           | outside p = -1
+           | otherwise = 1
 
      print (search (const 0)   jumps links start end)
      print (search layerChange jumps links start end)
 
--- | Test if coordinate is on inner wall
-inside :: Coord -> Bool
-inside (C y x) = 24 < x && x < 90 && 24  < y && y < 90
+-- | Build predicate for coordinates on outer wall.
+mkIsOutside ::
+  Map String [Coord] {- ^ labeled coordinates -} ->
+  Coord -> Bool
+mkIsOutside labels = \(C y x) -> x == xhi || x == xlo || y == yhi || y == ylo
+  where
+    Just (C ylo xlo, C yhi xhi) = boundingBox (concat labels)
+
+toArray :: [(Coord, Char)] -> UArray Coord Char
+toArray xs = listArray b (map snd xs)
+  where
+    Just b = boundingBox (map fst xs)
 
 data Pos = Pos !Coord !Int
  deriving (Eq, Ord, Show)
@@ -61,10 +72,9 @@ search delta jumps links start end = snd $ head $ filter isDone $ astar step (Po
      -- travel through a warp tile
      [ (Pos exit depth', cost + 1, 0)  |
           (enter, cost) <- Map.findWithDefault [] here jumps
-
-        , exit <- maybe [] pure (Map.lookup enter links)
+        , exit          <- maybe [] pure (Map.lookup enter links)
         , let depth' = depth + delta enter
-        , depth >= 0
+        , depth' >= 0
         ] ++
      -- finish maze
      [ (Pos enter 0, cost, 0)
