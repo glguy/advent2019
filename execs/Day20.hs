@@ -11,26 +11,27 @@ Maintainer  : emertens@gmail.com
 -}
 module Main (main) where
 
-import           Advent
-import           Advent.Coord
-import           Advent.Search
-import           Data.Char
-import           Data.Map (Map)
+import           Advent             (getInputLines)
+import           Advent.Coord       (Coord(C), boundingBox, cardinal, coordLines, above, below, left, right)
+import           Advent.Search      (astar)
+import           Data.Array.Unboxed (UArray, listArray, assocs, (!))
+import           Data.Char          (isAlpha)
+import           Data.Foldable      (toList)
+import           Data.Map           (Map)
 import qualified Data.Map as Map
 import qualified Data.Set as Set
-import           Data.Array.Unboxed
 
 main :: IO ()
 main =
   do inp <- coordLines <$> getInputLines 20
-     let Just b = boundingBox (map fst inp)
-         world  = listArray b (map snd inp)
-         labels = findLabels world
-         Just [end  ] = Map.lookup "ZZ" labels
-         Just [start] = Map.lookup "AA" labels
 
-         links = findLinks labels
-         jumps = shortcuts world (concat labels)
+     let world  = toArray inp
+         labels = findLabels world
+         links  = findLinks labels
+         jumps  = shortcuts world (concat labels)
+
+         Just [start] = Map.lookup "AA" labels
+         Just [end  ] = Map.lookup "ZZ" labels
 
          outside = mkIsOutside labels
 
@@ -64,15 +65,16 @@ search ::
   Coord                    {- ^ start position -} ->
   Coord                    {- ^ end position   -} ->
   Int                      {- ^ steps to end   -}
-search delta jumps links start end = snd $ head $ filter isDone $ astar step (Pos start 0)
+search delta jumps links start end =
+  snd $ head $ filter isDone $ astar step (Pos start 0)
   where
    isDone (p,_) = Pos end 0 == p
 
    step (Pos here depth) =
      -- travel through a warp tile
-     [ (Pos exit depth', cost + 1, 0)  |
-          (enter, cost) <- Map.findWithDefault [] here jumps
-        , exit          <- maybe [] pure (Map.lookup enter links)
+     [ (Pos exit depth', cost + 1, 0)
+        | (enter, cost) <- Map.findWithDefault [] here jumps
+        , exit          <- toList (Map.lookup enter links)
         , let depth' = depth + delta enter
         , depth' >= 0
         ] ++
@@ -96,19 +98,18 @@ findLinks xs =
 findLabels :: UArray Coord Char -> Map String [Coord]
 findLabels m =
   Map.fromListWith (++)
-    [ (x,[k])
-    | (k,'.') <- assocs m
-
-    , x <- check k (left . left) left  ++
-           check k right (right . right) ++
-           check k (above . above) above ++
-           check k below (below . below)
+    [ (lbl, [pos])
+    | (pos, '.') <- assocs m
+    , (f1, f2)   <- adjFuns
+    , let lbl = [m ! f1 pos, m ! f2 pos]
+    , all isAlpha lbl
     ]
   where
-    check k f g = [ [a,b] | let a = at (f k)
-                          , let b = at (g k)
-                          , isAlpha a, isAlpha b]
-    at i = m ! i
+    adjFuns = [ (left.left, left)
+              , (right, right.right)
+              , (above.above, above)
+              , (below, below.below) ]
+
 
 
 -- | Given a list of starting positions find map of destinations
