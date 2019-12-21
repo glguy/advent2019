@@ -175,3 +175,9 @@ executable Day20
   build-depends:       advent2019, base, containers, array
   hs-source-dirs:      execs
   default-language:    Haskell2010
+
+executable Day21
+  main-is:             Day21.hs
+  build-depends:       advent2019, base
+  hs-source-dirs:      execs
+  default-language:    Haskell2010

@@ -41,6 +41,7 @@ module Advent.Intcode
   -- * Simple interface
   memoryParser,
   intCodeToList,
+  runIO,
 
   -- * Machine state
   Machine(..), (!), new, set, memoryList,
@@ -62,6 +63,18 @@ import qualified Data.IntMap as IntMap
 import qualified Data.Vector.Unboxed as V
 import           Text.Show.Functions ()
 import           Data.Maybe (fromMaybe)
+
+------------------------------------------------------------------------
+-- ASCII I/O
+------------------------------------------------------------------------
+
+runIO :: Effect -> IO ()
+runIO (Output o e)
+  | 0 <= o, o < 0x80  = putChar (chr (fromIntegral o))    >> runIO e
+  | otherwise         = putStrLn ("<<" ++ show o ++ ">>") >> runIO e
+runIO (Input f)       = getChar >>= runIO . f . fromIntegral . ord
+runIO Halt            = return ()
+runIO Fault           = fail "Machine fault"
 
 ------------------------------------------------------------------------
 -- High-level interface
