@@ -92,10 +92,3 @@ instructions xs = intercalate "," [ show d ++ "," ++ show n | (d,n) <- xs ]
 
 splits :: [a] -> [([a],[a])]
 splits xs = tail $ zip (inits xs) (tails xs)
-
-play :: Effect -> IO ()
-play (Output i Halt) = putStrLn ("<<" ++ show i ++ ">>")
-play (Output o e) = putChar (chr (fromIntegral o)) >> play e
-play (Input f) = getChar >>= play . f . fromIntegral . ord
-play Halt = return ()
-play Fault = return ()

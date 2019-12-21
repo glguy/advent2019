@@ -57,6 +57,7 @@ module Advent.Intcode
   ) where
 
 import           Advent           (Parser, number, sepBy)
+import           Data.Char           (chr, ord)
 import           Data.IntMap         (IntMap)
 import           Data.Traversable (mapAccumL)
 import qualified Data.IntMap as IntMap
