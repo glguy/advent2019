@@ -18,6 +18,10 @@ import GHC.Natural                    (Natural)
 import GHC.TypeNats                   (KnownNat, SomeNat(..), someNatVal)
 import Math.NumberTheory.Moduli.Class (Mod, getNatVal)
 
+------------------------------------------------------------------------
+-- Parsing
+------------------------------------------------------------------------
+
 data Command
   = Cut     Integer
   | DealInc Integer
@@ -30,9 +34,13 @@ parseCommand
   <|> DealInc <$ "deal with increment " <*> number
   <|> DealNew <$ "deal into new stack"
 
+------------------------------------------------------------------------
+-- Composite shuffles
+------------------------------------------------------------------------
+
 toComposite :: KnownNat n => Command -> Composite n
 toComposite DealNew     = Composite (-1) 1
-toComposite (Cut i)     = Composite 1 (fromInteger i)
+toComposite (Cut     i) = Composite 1 (fromInteger i)
 toComposite (DealInc i) = Composite (fromInteger i) 0
 
 data Composite n = Composite
@@ -47,18 +55,15 @@ apply c i = (compCut c + i) / compDealInc c
 unapply :: KnownNat n => Composite n -> Mod n -> Mod n
 unapply c i = i * compDealInc c - compCut c
 
-compositeCut :: KnownNat n => Mod n -> Composite n -> Composite n
-compositeCut x c = c { compCut = compDealInc c * x + compCut c }
-
-compositeDealInc :: KnownNat n => Mod n -> Composite n -> Composite n
-compositeDealInc x c = c { compDealInc = x * compDealInc c }
-
 instance KnownNat n => Semigroup (Composite n) where
-  x <> y = compositeDealInc (compDealInc x)
-         $ compositeCut     (compCut x) y
+  Composite a b <> Composite c d = Composite (a*c) (c*b+d)
 
 instance KnownNat n => Monoid (Composite n) where
   mempty = Composite 1 0
+
+------------------------------------------------------------------------
+-- Driver code
+------------------------------------------------------------------------
 
 main :: IO ()
 main =
