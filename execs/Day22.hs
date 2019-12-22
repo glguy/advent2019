@@ -30,15 +30,6 @@ parseCommand
   <|> DealInc <$ "deal with increment " <*> number
   <|> DealNew <$ "deal into new stack"
 
-applyCut :: KnownNat n => Mod n -> Mod n -> Mod n
-applyCut z i = i+z
-
-applyDealInc :: KnownNat n => Mod n -> Mod n -> Mod n
-applyDealInc z i = i/z
-
-unapplyDealInc :: KnownNat n => Mod n -> Mod n -> Mod n
-unapplyDealInc z i = i*z
-
 toComposite :: KnownNat n => Command -> Composite n
 toComposite DealNew     = Composite (-1) 1
 toComposite (Cut i)     = Composite 1 (fromInteger i)
@@ -51,12 +42,10 @@ data Composite n = Composite
   deriving Show
 
 apply :: KnownNat n => Composite n -> Mod n -> Mod n
-apply c = applyDealInc (compDealInc c)
-        . applyCut (compCut c)
+apply c i = (compCut c + i) / compDealInc c
 
 unapply :: KnownNat n => Composite n -> Mod n -> Mod n
-unapply c = applyCut (-compCut c)
-          . unapplyDealInc (compDealInc c)
+unapply c i = i * compDealInc c - compCut c
 
 compositeCut :: KnownNat n => Mod n -> Composite n -> Composite n
 compositeCut x c = c { compCut = compDealInc c * x + compCut c }
