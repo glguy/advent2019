@@ -1,4 +1,4 @@
-{-# Language OverloadedStrings, ScopedTypeVariables, DataKinds #-}
+{-# Language TypeApplications, RankNTypes, OverloadedStrings, ScopedTypeVariables, DataKinds #-}
 {-|
 Module      : Main
 Description : Day 22 solution
@@ -68,20 +68,18 @@ instance KnownNat n => Monoid (Composite n) where
 main :: IO ()
 main =
   do inp <- getParsedLines 22 parseCommand
-     print (driver1 inp 10007 2019)
-     print (driver2 inp 119315717514047 101741582076661 2020)
+     print (driver1 inp                           10007 2019)
+     print (driver2 inp 101741582076661 119315717514047 2020)
 
 driver1 :: [Command] -> Natural -> Natural -> Natural
-driver1 commands cards index =
-  case someNatVal cards of
-    SomeNat (_ :: p n) ->
-      let single = mconcat (map toComposite commands) :: Composite n
-      in getNatVal (unapply single (fromIntegral index))
+driver1 commands =
+  runModFn (unapply (foldMap toComposite commands))
 
 driver2 :: [Command] -> Natural -> Natural -> Natural -> Natural
-driver2 commands cards iterations index =
-  case someNatVal cards of
-    SomeNat (_ :: p n) ->
-      let single = mconcat (map toComposite commands) :: Composite n
-          full   = stimes iterations single
-      in getNatVal (apply full (fromIntegral index))
+driver2 commands iterations =
+  runModFn (apply (stimes iterations (foldMap toComposite commands)))
+
+runModFn :: (forall n. KnownNat n => Mod n -> Mod n) -> Natural -> Natural -> Natural
+runModFn f n =
+  case someNatVal n of
+    SomeNat (_ :: p m) -> getNatVal . f @m . fromIntegral
