@@ -13,7 +13,6 @@ module Main (main) where
 
 import Advent                         (Parser, getParsedLines, number)
 import Control.Applicative            ((<|>))
-import Data.Bool                      (bool)
 import Data.Semigroup                 (stimes)
 import GHC.Natural                    (Natural)
 import GHC.TypeNats                   (KnownNat, SomeNat(..), someNatVal)
@@ -31,9 +30,6 @@ parseCommand
   <|> DealInc <$ "deal with increment " <*> number
   <|> DealNew <$ "deal into new stack"
 
-applyDealNew :: KnownNat n => Mod n -> Mod n
-applyDealNew   i = -i-1
-
 applyCut :: KnownNat n => Mod n -> Mod n -> Mod n
 applyCut z i = i+z
 
@@ -43,26 +39,19 @@ applyDealInc z i = i*q
     Just q = invertMod z
 
 toComposite :: KnownNat n => Command -> Composite n
-toComposite DealNew     = Composite 1 0 True
-toComposite (Cut i)     = Composite 1 (fromInteger i) False
-toComposite (DealInc i) = Composite (fromInteger i) 0 False
+toComposite DealNew     = Composite (-1) 1
+toComposite (Cut i)     = Composite 1 (fromInteger i)
+toComposite (DealInc i) = Composite (fromInteger i) 0
 
 data Composite n = Composite
   { compDealInc :: !(Mod n)
   , compCut     :: !(Mod n)
-  , compDealNew :: !Bool
   }
   deriving Show
 
 apply :: KnownNat n => Composite n -> Mod n -> Mod n
 apply c = applyDealInc (compDealInc c)
         . applyCut (compCut c)
-        . bool id applyDealNew (compDealNew c)
-
-compositeDealNew :: KnownNat n => Composite n -> Composite n
-compositeDealNew c =
-  c { compCut     = 1 - compDealInc c - compCut c
-    , compDealNew = not (compDealNew c) }
 
 compositeCut :: KnownNat n => Mod n -> Composite n -> Composite n
 compositeCut x c = c { compCut = compDealInc c * x + compCut c }
@@ -72,11 +61,10 @@ compositeDealInc x c = c { compDealInc = x * compDealInc c }
 
 instance KnownNat n => Semigroup (Composite n) where
   x <> y = compositeDealInc (compDealInc x)
-         $ compositeCut     (compCut x)
-         $ bool id compositeDealNew (compDealNew x) y
+         $ compositeCut     (compCut x) y
 
 instance KnownNat n => Monoid (Composite n) where
-  mempty = Composite 1 0 False
+  mempty = Composite 1 0
 
 main :: IO ()
 main =
