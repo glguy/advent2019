@@ -1,4 +1,4 @@
-{-# Language TypeApplications, RankNTypes, OverloadedStrings, ScopedTypeVariables, DataKinds #-}
+{-# Language RankNTypes, OverloadedStrings, DeriveFunctor #-}
 {-|
 Module      : Main
 Description : Day 22 solution
@@ -8,7 +8,7 @@ Maintainer  : emertens@gmail.com
 
 <https://adventofcode.com/2019/day/22>
 
->>> let shuffleTest cmds = runModFn (apply (commandsToLinear cmds)) 10 <$> [0..9]
+>>> let shuffleTest cmds = runModFn (apply (techniquesToLinear cmds)) 10 <$> [0..9]
 
 >>> shuffleTest [DealNew]
 [9,8,7,6,5,4,3,2,1,0]
@@ -66,44 +66,54 @@ parseTechnique
 
 -- | Compute function for a shuffle instruction mapping indexes in
 -- the shuffled deck to positions in the source deck.
-toLinear :: KnownNat n => Technique -> Linear (Mod n)
-toLinear DealNew     = Linear (-1) (-1)
-toLinear (Cut     i) = Linear 1 (fromInteger i)
-toLinear (DealInc i) = Linear (1 / fromInteger i) 0
+techToLinearFn :: Fractional a => Technique -> LinearFn a
+techToLinearFn DealNew     = add (-1) (scale (-1) x_)
+techToLinearFn (Cut     i) = add (fromInteger i) x_
+techToLinearFn (DealInc i) = scale (1/fromInteger i) x_
 
 -- | Construts the linear function corresponding to applying the
 -- given shuffles in order from left to right.
-commandsToLinear :: KnownNat n => [Technique] -> Linear (Mod n)
-commandsToLinear = foldMap toLinear
+techsToLinearFn :: Fractional a => [Technique] -> LinearFn a
+techsToLinearFn = foldMap techToLinearFn
 
 ------------------------------------------------------------------------
 -- Linear functions
 ------------------------------------------------------------------------
 
 -- | Linear functions: @Linear a b ~ λx. ax+b@
-data Linear a = Linear !a !a
-  deriving Show
+data LinearFn a = LinearFn !a !a
+  deriving (Functor, Show)
 
-apply :: Num a => Linear a -> a -> a
-apply (Linear a b) x = a * x + b
+apply :: Num a => LinearFn a -> a -> a
+apply (LinearFn a b) x = a * x + b
 
-invert :: Fractional a => Linear a -> Linear a
-invert (Linear a b) = Linear (1/a) (-b/a)
+invert :: Fractional a => LinearFn a -> LinearFn a
+invert (LinearFn a b) = LinearFn (1/a) (-b/a)
+
+-- | Identity function
+x_ :: Num a => LinearFn a
+x_ = LinearFn 1 0
+
+scale :: Num a => a -> LinearFn a -> LinearFn a
+scale x (LinearFn a b) = LinearFn (x * a) (x * b)
+
+add :: Num a => a -> LinearFn a -> LinearFn a
+add x (LinearFn a b) = LinearFn a (x + b)
 
 -- | Composition of linear functions
 --
--- >>> let f = Linear 1 2
--- >>> let g = Linear 3 4
+-- >>> let f = LinearFn 1 2
+-- >>> let g = LinearFn 3 4
 -- >>> (f <> g) `apply` 10
 -- 36
 -- >>> f `apply` (g `apply` 10)
 -- 36
-instance Num a => Semigroup (Linear a) where
-  Linear a b <> Linear c d = Linear (a*c) (b + a*d)
+instance Num a => Semigroup (LinearFn a) where
+  LinearFn a b <> LinearFn c d = LinearFn (a*c) (b + a*d)
 
--- | @mempty ~ λx. x@
-instance Num a => Monoid (Linear a) where
-  mempty = Linear 1 0
+-- | @'mempty' = 'x_'@
+instance Num a => Monoid (LinearFn a) where
+  mempty = x_
 
 ------------------------------------------------------------------------
 -- Driver code
@@ -111,19 +121,22 @@ instance Num a => Monoid (Linear a) where
 
 main :: IO ()
 main =
-  do inp <- getParsedLines 22 parseTechnique
-     print (driver1 inp                           10007 2019)
-     print (driver2 inp 101741582076661 119315717514047 2020)
+  do techniques <- getParsedLines 22 parseTechnique
 
-driver1 :: [Technique] -> Natural -> Natural -> Natural
-driver1 commands =
-  runModFn (apply (invert (commandsToLinear commands)))
+     let shuffle :: Fractional a => LinearFn a
+         shuffle = techsToLinearFn techniques
 
-driver2 :: [Technique] -> Natural -> Natural -> Natural -> Natural
-driver2 commands iterations =
-  runModFn (apply (stimes iterations (commandsToLinear commands)))
+     print ((invert shuffle `withModulus` 10007) 2019)
 
-runModFn :: (forall n. KnownNat n => Mod n -> Mod n) -> Natural -> Natural -> Natural
-runModFn f modulus =
+     let iterations = 101741582076661 :: Natural
+     print ((stimes iterations shuffle `withModulus` 119315717514047) 2020)
+
+withModulus ::
+  (forall n. KnownNat n => LinearFn (Mod n)) ->
+  Natural -> Natural -> Natural
+f `withModulus` modulus =
   case someNatVal modulus of
-    SomeNat (_ :: p m) -> getNatVal @m . f . fromIntegral
+    SomeNat p -> getNatVal . asMod p . apply f . fromIntegral
+
+asMod :: proxy n -> Mod n -> Mod n
+asMod _ x = x
