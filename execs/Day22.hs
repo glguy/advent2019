@@ -8,7 +8,7 @@ Maintainer  : emertens@gmail.com
 
 <https://adventofcode.com/2019/day/22>
 
->>> let shuffleTest cmds = runModFn (apply (techniquesToLinear cmds)) 10 <$> [0..9]
+>>> let shuffleTest cmds = techsToLinearFn cmds `withModulus` 10 <$> [0..9]
 
 >>> shuffleTest [DealNew]
 [9,8,7,6,5,4,3,2,1,0]
