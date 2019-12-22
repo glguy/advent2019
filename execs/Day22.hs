@@ -38,6 +38,9 @@ applyDealInc z i = i*q
   where
     Just q = invertMod z
 
+unapplyDealInc :: KnownNat n => Mod n -> Mod n -> Mod n
+unapplyDealInc z i = z*i
+
 toComposite :: KnownNat n => Command -> Composite n
 toComposite DealNew     = Composite (-1) 1
 toComposite (Cut i)     = Composite 1 (fromInteger i)
@@ -52,6 +55,10 @@ data Composite n = Composite
 apply :: KnownNat n => Composite n -> Mod n -> Mod n
 apply c = applyDealInc (compDealInc c)
         . applyCut (compCut c)
+
+unapply :: KnownNat n => Composite n -> Mod n -> Mod n
+unapply c = applyCut (-compCut c)
+          . unapplyDealInc (compDealInc c)
 
 compositeCut :: KnownNat n => Mod n -> Composite n -> Composite n
 compositeCut x c = c { compCut = compDealInc c * x + compCut c }
@@ -69,11 +76,18 @@ instance KnownNat n => Monoid (Composite n) where
 main :: IO ()
 main =
   do inp <- getParsedLines 22 parseCommand
-     print (driver inp           10007               1 2019)
-     print (driver inp 119315717514047 101741582076661 2020)
+     print (driver1 inp 10007 2019)
+     print (driver2 inp 119315717514047 101741582076661 2020)
 
-driver :: [Command] -> Natural -> Natural -> Natural -> Natural
-driver commands cards iterations index =
+driver1 :: [Command] -> Natural -> Natural -> Natural
+driver1 commands cards index =
+  case someNatVal cards of
+    SomeNat (_ :: p n) ->
+      let single = mconcat (map toComposite commands) :: Composite n
+      in getNatVal (unapply single (fromIntegral index))
+
+driver2 :: [Command] -> Natural -> Natural -> Natural -> Natural
+driver2 commands cards iterations index =
   case someNatVal cards of
     SomeNat (_ :: p n) ->
       let single = mconcat (map toComposite commands) :: Composite n
