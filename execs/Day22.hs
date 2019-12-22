@@ -16,7 +16,7 @@ import Control.Applicative            ((<|>))
 import Data.Semigroup                 (stimes)
 import GHC.Natural                    (Natural)
 import GHC.TypeNats                   (KnownNat, SomeNat(..), someNatVal)
-import Math.NumberTheory.Moduli.Class (Mod, invertMod, getNatVal)
+import Math.NumberTheory.Moduli.Class (Mod, getNatVal)
 
 data Command
   = Cut     Integer
@@ -34,12 +34,10 @@ applyCut :: KnownNat n => Mod n -> Mod n -> Mod n
 applyCut z i = i+z
 
 applyDealInc :: KnownNat n => Mod n -> Mod n -> Mod n
-applyDealInc z i = i*q
-  where
-    Just q = invertMod z
+applyDealInc z i = i/z
 
 unapplyDealInc :: KnownNat n => Mod n -> Mod n -> Mod n
-unapplyDealInc z i = z*i
+unapplyDealInc z i = i*z
 
 toComposite :: KnownNat n => Command -> Composite n
 toComposite DealNew     = Composite (-1) 1
