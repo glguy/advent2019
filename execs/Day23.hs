@@ -26,7 +26,7 @@ main =
 firstMatch :: Eq a => [a] -> a
 firstMatch ys = head [ a | (a,b) <- zip ys (tail ys), a==b ]
 
-data Packet = Packet Int Int Int -- ^ destination, x, y
+data Packet = Packet !Int !Int !Int -- ^ destination, x, y
 
 -- | Map of VM identities to current execution state.
 type Network = IntMap Effect
