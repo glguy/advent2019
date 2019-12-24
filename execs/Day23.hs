@@ -11,6 +11,8 @@ Maintainer  : emertens@gmail.com
 module Main (main) where
 
 import           Advent         (getParsedLines)
+import           Advent.Queue   (Queue((:<|)))
+import qualified Advent.Queue as Queue
 import           Advent.Intcode (Effect(..), memoryParser, feedInput, run, new)
 import           Data.IntMap    (IntMap)
 import qualified Data.IntMap as IntMap
@@ -18,8 +20,7 @@ import qualified Data.IntMap as IntMap
 main :: IO ()
 main =
   do [inp] <- getParsedLines 23 memoryParser
-     let net    = IntMap.fromList [ (i, feedInput [i] (run (new inp))) | i <- [0..49]]
-     let events = runSystem System{ network = net, nat = Nothing }
+     let events = startup (run (new inp))
      print (head       [y | SetY  y <- events])
      print (firstMatch [y | SendY y <- events])
 
@@ -35,6 +36,7 @@ type Network = IntMap Effect
 data System = System
   { network :: Network
   , nat     :: Maybe (Int,Int)
+  , sendq   :: Queue Packet
   }
 
 -- | Network events needed to answer part 1 and 2.
@@ -43,23 +45,31 @@ data Event
   | SendY !Int -- ^ NAT packet set after a system stall
 
 -- | Run a VM gathering packets until it blocks waiting for input.
-gatherPacket :: Effect -> ([Packet], Effect)
-gatherPacket (Output dst (Output x (Output y e))) = do ([Packet dst x y], ()); gatherPacket e
-gatherPacket e                                    = pure e
+gather :: Effect -> ([Packet], Effect)
+gather (Output dst (Output x (Output y e))) = do ([Packet dst x y], ()); gather e
+gather e                                    = pure e
 
-runSystem :: System -> [Event]
-runSystem sys =
-  case traverse gatherPacket (network sys) of
-    (packets, net1)
-      | not (null packets)    -> send packets sys{ network = net1 }
-      | Just (x,y) <- nat sys -> SendY y
-                               : runSystem sys{ network = deliver (Packet 0 x y) net1 }
-      | otherwise             -> runSystem sys{ network = feedInput [-1] <$> network sys }
+-- gather up any packets ready to send at the outset
+startup :: Effect -> [Event]
+startup eff = stepNetwork (traverse gather)
+  System { network = IntMap.fromList [ (i, feedInput [i] eff) | i <- [0..49]]
+         , sendq   = Queue.Empty
+         , nat     = Nothing }
 
-send :: [Packet] -> System -> [Event]
-send []                    sys = runSystem sys
-send (Packet 255 x y : ps) sys = SetY y : send ps sys{ nat = Just (x,y) }
-send (p              : ps) sys = send ps sys{ network = deliver p (network sys) }
+tryToSend :: System -> [Event]
+tryToSend sys
+  | p :<| ps   <- sendq sys = deliver p sys{ sendq = ps }
+  | Just (x,y) <- nat   sys = SendY y : deliver (Packet 0 x y) sys
+  | otherwise               = stepNetwork (traverse (gather . feedInput [-1])) sys
 
-deliver :: Packet -> Network -> Network
-deliver (Packet dst x y) = IntMap.adjust (feedInput [x,y]) dst
+deliver :: Packet -> System -> [Event]
+deliver (Packet 255 x y) sys = SetY y : tryToSend sys{ nat = Just (x,y) }
+deliver (Packet dst x y) sys = stepNetwork (updateF (gather . feedInput [x,y]) dst) sys
+
+stepNetwork :: (Network -> ([Packet], Network)) -> System -> [Event]
+stepNetwork f sys =
+  case f (network sys) of
+    (ps, net) -> tryToSend sys{ network = net, sendq = Queue.appendList ps (sendq sys) }
+
+updateF :: Applicative f => (a -> f a) -> Int -> IntMap a -> f (IntMap a)
+updateF = IntMap.alterF . traverse
