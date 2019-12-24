@@ -27,6 +27,8 @@ data Args = Args
   { argsFilename :: FilePath
   , overrides    :: [(Int,Int)]
   , initialmode  :: OutMode
+  , initialRel   :: Int
+  , initialPC    :: Int
   }
 
 options :: [OptDescr (Either String (Args -> Args))]
@@ -47,6 +49,22 @@ options =
           | otherwise =
                 Left ("Valid modes:" ++ concat [' ':name | (name,_) <- availableModes])
     in Option ['o'] ["output"] (ReqArg parseMode "MODE") "Initial output mode"
+
+
+  , let parsePC str
+          | [(i,"")] <- reads str =
+                Right (\a -> a{initialPC = i})
+          | otherwise = Left "Unable to parse program counter"
+
+    in Option ['p'] ["pc"] (ReqArg parsePC "POS") "Override initial program counter"
+
+
+  , let parseRel str
+          | [(i,"")] <- reads str, 0 <= i =
+                Right (\a -> a{initialRel = i})
+          | otherwise = Left "Unable to parse relative base"
+
+    in Option ['r'] ["rel"] (ReqArg parseRel "POS") "Override initial relative base"
   ]
 
 getAppArgs :: IO Args
@@ -57,8 +75,10 @@ getAppArgs =
          | null allErrors ->
               pure $ foldl (flip id)
                     Args { argsFilename = head filenames
-                        , overrides = []
-                        , initialmode = OutASCII }
+                        , overrides   = []
+                        , initialmode = OutASCII
+                        , initialRel  = 0
+                        , initialPC   = 0 }
                     updates
 
          | otherwise ->
@@ -87,10 +107,12 @@ getMachine args =
      case parse memoryParser (argsFilename args) imageText of
        Left e  -> fail (errorBundlePretty e)
        Right i ->
-         do let i' = foldl' (\acc (p,v) -> set p v acc)
+         do let i1 = foldl' (\acc (p,v) -> set p v acc)
                             (new i)
                             (overrides args)
-            pure i'
+                i2 = i1 { pc      = initialPC  args
+                        , relBase = initialRel args }
+            pure i2
 
 
 main :: IO ()
@@ -151,7 +173,9 @@ launch con =
 prompt :: Console -> IO ()
 prompt con =
       do -- draw the prompt
-         setTitle ("Intcode Console PC:" ++ show (pc (machine con)))
+         setTitle ("Intcode Console" ++
+                   " PC:" ++ show (pc (machine con)) ++
+                   " REL:" ++ show (relBase (machine con)))
          metaprint (show (length (history con)) ++ "> ")
 
          -- get next line
@@ -183,11 +207,26 @@ runCommand command con =
 
 commandImpls :: Map String ([String] -> Console -> IO ())
 commandImpls = Map.fromList
-  [("back", backCommand)
-  ,("dump", dumpCommand)
-  ,("ints", intsCommand)
+  [("back"  , backCommand  )
+  ,("dump"  , dumpCommand  )
+  ,("ints"  , intsCommand  )
   ,("output", outputCommand)
+  ,("help"  , helpCommand  )
+  ,("info"  , infoCommand  )
   ]
+
+infoCommand :: [String] -> Console -> IO ()
+infoCommand _ con =
+  do metaprintLn ("PC : " ++ show (pc      (machine con)))
+     metaprintLn ("REL: " ++ show (relBase (machine con)))
+     metaprintLn ("CNG: " ++ show (length (memory (machine con))))
+     prompt con
+
+helpCommand :: [String] -> Console -> IO ()
+helpCommand _ con =
+  do metaprintLn ("Available commands:" ++
+                  concat [' ':name | name <- Map.keys commandImpls])
+     prompt con
 
 outputCommand :: [String] -> Console -> IO ()
 outputCommand args con =
