@@ -19,7 +19,7 @@ main :: IO ()
 main =
   do [inp] <- getParsedLines 23 memoryParser
      let net    = IntMap.fromList [ (i, feedInput [i] (run (new inp))) | i <- [0..49]]
-     let events = runSystem System{ network = net, netX = 0, netY = 0}
+     let events = runSystem System{ network = net, nat = Nothing }
      print (head       [y | SetY  y <- events])
      print (firstMatch [y | SendY y <- events])
 
@@ -33,19 +33,14 @@ type Network = IntMap Effect
 
 -- | State of network simulation including most recent NAT packet.
 data System = System
-  { network :: !Network
-  , netX    :: !Int
-  , netY    :: !Int
+  { network :: Network
+  , nat     :: Maybe (Int,Int)
   }
 
 -- | Network events needed to answer part 1 and 2.
 data Event
   = SetY  !Int -- ^ Y value sent to address 255
   | SendY !Int -- ^ NAT packet set after a system stall
-
-isInput :: Effect -> Bool
-isInput Input{} = True
-isInput _       = False
 
 -- | Run a VM gathering packets until it blocks waiting for input.
 gatherPacket :: Effect -> ([Packet], Effect)
@@ -56,17 +51,14 @@ runSystem :: System -> [Event]
 runSystem sys =
   case traverse gatherPacket (network sys) of
     (packets, net1)
-      | not (null packets) -> send packets sys{ network = net1 }
-      | all isInput net2   -> SendY (netY sys)
-                            : runSystem sys{ network = deliver natPacket net1 }
-      | otherwise          -> runSystem sys{ network = net2 }
-      where
-        net2      = feedInput [-1] <$> net1
-        natPacket = Packet 0 (netX sys) (netY sys)
+      | not (null packets)    -> send packets sys{ network = net1 }
+      | Just (x,y) <- nat sys -> SendY y
+                               : runSystem sys{ network = deliver (Packet 0 x y) net1 }
+      | otherwise             -> runSystem sys{ network = feedInput [-1] <$> network sys }
 
 send :: [Packet] -> System -> [Event]
 send []                    sys = runSystem sys
-send (Packet 255 x y : ps) sys = SetY y : send ps sys{ netX = x, netY = y }
+send (Packet 255 x y : ps) sys = SetY y : send ps sys{ nat = Just (x,y) }
 send (p              : ps) sys = send ps sys{ network = deliver p (network sys) }
 
 deliver :: Packet -> Network -> Network
