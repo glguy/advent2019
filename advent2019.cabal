@@ -56,6 +56,13 @@ executable Breakout
   hs-source-dirs:      execs
   default-language:    Haskell2010
 
+executable IntcodeConsole
+  main-is:             IntcodeConsole.hs
+  ghc-options:         -threaded
+  build-depends:       advent2019, base, transformers, containers, megaparsec, ansi-terminal
+  hs-source-dirs:      execs
+  default-language:    Haskell2010
+
 executable Day01
   main-is:             Day01.hs
   build-depends:       advent2019, base,
