@@ -19,8 +19,8 @@ import qualified Data.IntMap as IntMap
 
 main :: IO ()
 main =
-  do [inp] <- getParsedLines 23 memoryParser
-     let events = startup (run (new inp))
+  do [pgm] <- getParsedLines 23 memoryParser
+     let events = startup pgm
      print (head       [y | SetY  y <- events])
      print (firstMatch [y | SendY y <- events])
 
@@ -50,21 +50,30 @@ gather (Output dst (Output x (Output y e))) = do ([Packet dst x y], ()); gather 
 gather e                                    = pure e
 
 -- gather up any packets ready to send at the outset
-startup :: Effect -> [Event]
-startup eff = stepNetwork (traverse gather)
-  System { network = IntMap.fromList [ (i, feedInput [i] eff) | i <- [0..49]]
-         , sendq   = Queue.Empty
-         , nat     = Nothing }
+startup :: [Int] -> [Event]
+startup pgm = stepNetwork (traverse gather) sys
+  where
+    eff = run (new pgm)
+    sys = System { network = IntMap.fromList [ (i, feedInput [i] eff) | i <- [0..49]]
+                 , sendq   = Queue.Empty
+                 , nat     = Nothing }
 
 tryToSend :: System -> [Event]
-tryToSend sys
-  | p :<| ps   <- sendq sys = deliver p sys{ sendq = ps }
-  | Just (x,y) <- nat   sys = SendY y : deliver (Packet 0 x y) sys
-  | otherwise               = stepNetwork (traverse (gather . feedInput [-1])) sys
+tryToSend sys =
+  case sendq sys of
+    p :<| ps    -> deliver p sys{ sendq = ps }
+    Queue.Empty -> stalled sys
+
+stalled :: System -> [Event]
+stalled sys =
+  case nat sys of
+    Just (x,y) -> SendY y : deliver (Packet 0 x y) sys
+    Nothing    -> stepNetwork (traverse (gather . feedInput [-1])) sys
 
 deliver :: Packet -> System -> [Event]
-deliver (Packet 255 x y) sys = SetY y : tryToSend sys{ nat = Just (x,y) }
-deliver (Packet dst x y) sys = stepNetwork (updateF (gather . feedInput [x,y]) dst) sys
+deliver (Packet dst x y) sys
+  | dst == 255 = SetY y : tryToSend sys{ nat = Just (x,y) }
+  | otherwise  = stepNetwork (updateF (gather . feedInput [x,y]) dst) sys
 
 stepNetwork :: (Network -> ([Packet], Network)) -> System -> [Event]
 stepNetwork f sys =
