@@ -26,7 +26,7 @@ script =
    east, take_ "semiconductor",
    west, south, south, east, take_ "ornament",
    south, take_ "festive hat",
-   north, west, west, north, west]
+   north, west, west, north, north, west]
   where
     north = "north"
     south = "south"
