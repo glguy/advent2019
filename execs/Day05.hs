@@ -43,7 +43,7 @@ import qualified Data.Sequence as Seq
 
 main :: IO ()
 main =
-  do [pgm] <- map intCodeToList <$> getParsedLines 5 memoryParser
-     let go i = print (last (pgm [i]))
+  do [inp] <- getParsedLines 5 memoryParser
+     let go i = print (last (intCodeToList inp [i]))
      go 1
      go 5

@@ -121,6 +121,7 @@ main =
      mach <- getMachine args
      launch Console
        { machine = mach
+       , looper  = looperStep mach
        , history = Seq.Empty
        , inputq  = []
        , outmode = initialmode args }
@@ -131,6 +132,7 @@ main =
 
 data Console = Console
   { machine :: !Machine
+  , looper  :: !(Maybe Machine)
   , history :: Seq Machine
   , inputq  :: [Int]
   , outmode :: OutMode
@@ -148,17 +150,33 @@ addInput [] con = con
 addInput xs con = con { history = history con Seq.|> machine con
                       , inputq = xs }
 
+looperStep :: Machine -> Maybe Machine
+looperStep m =
+  case step m of
+    Step m'      -> Just m'
+    StepOut _ m' -> Just m'
+    _            -> Nothing
 
 launch :: Console -> IO ()
-launch con =
+launch con
+  | Just (machine con) == looper con =
+          do errorPrintLn "<<LOOP>>"
+             prompt con{ looper = looperStep (machine con) }
+  | otherwise =
+
+  let looper' = looperStep =<< looperStep =<< looper con in
   case step (machine con) of
-    Step m'      -> launch con{ machine = m' }
+    Step m' ->
+      launch con{ machine = m', looper = looper' }
+
     StepOut o m' ->
       do emit o (outmode con)
-         launch con{ machine = m' }
+         launch con{ machine = m', looper = looper' }
+
     StepIn resume ->
       case inputq con of
-        x:xs -> launch con{ inputq = xs, machine = resume x }
+        x:xs -> let m = resume x
+                in launch con{ inputq = xs, machine = m, looper = looperStep m }
         []   -> prompt con
 
     StepHalt ->
@@ -213,6 +231,7 @@ commandImpls = Map.fromList
   ,("output", outputCommand)
   ,("help"  , helpCommand  )
   ,("info"  , infoCommand  )
+  ,("changes" , changesCommand  )
   ]
 
 infoCommand :: [String] -> Console -> IO ()
@@ -237,18 +256,28 @@ outputCommand args con =
     _ -> do errorPrintLn ("Valid modes:" ++ concat [' ':name | (name,_) <- availableModes])
             prompt con
 
+changesCommand :: [String] -> Console -> IO ()
+changesCommand _ con =
+  do metaprintLn (show (memory (machine con)))
+     prompt con
+
 backCommand :: [String] -> Console -> IO ()
 backCommand args con =
-  case args of
-    [istr]
-      | Just i <- readMaybe istr
-      , (l, m Seq.:<| _) <- Seq.splitAt i (history con) ->
+  case param of
+    Just i
+      | (l, m Seq.:<| _) <- Seq.splitAt i (history con) ->
               launch con{ history = l
                         , machine = m
                         , inputq  = [] }
     _ ->
       do errorPrintLn "Bad arguments to back"
          prompt con
+  where
+    param =
+      case args of
+        [istr] -> readMaybe istr
+        []     -> Just (length (history con) - 1)
+        _      -> Nothing
 
 dumpCommand :: [String] -> Console -> IO ()
 dumpCommand args con =

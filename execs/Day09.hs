@@ -25,6 +25,6 @@ import Advent.Intcode (intCodeToList, memoryParser)
 main :: IO ()
 main =
   do [inp] <- getParsedLines 9 memoryParser
-     let pgm i = intCodeToList inp [i]
-     print (pgm 1)
-     print (pgm 2)
+     let go i = print (head (intCodeToList inp [i]))
+     go 1
+     go 2
