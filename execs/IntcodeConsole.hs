@@ -216,7 +216,7 @@ runCommand command con =
     []       -> prompt con
     cmd:args ->
       case Map.lookup cmd commandImpls of
-        Nothing   -> errorPrintLn "Unknown command"
+        Nothing   -> errorPrintLn "Unknown command" >> prompt con
         Just impl -> impl args con
 
 ------------------------------------------------------------------------

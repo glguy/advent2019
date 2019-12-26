@@ -1,4 +1,5 @@
 {-# Language OverloadedStrings #-}
+{-# Options_GHC -w #-}
 {-|
 Module      : Main
 Description : Day 24 solution
@@ -15,32 +16,31 @@ import           Advent
 import           Advent.Coord
 import           Data.Set (Set)
 import qualified Data.Set as Set
+import qualified Data.Map.Strict as Map
 
 main :: IO ()
 main =
   do inp <- bugCoords <$> getInputLines 24
-
-     print (biodiversity (findDup (iterate update inp)))
+     print (biodiversity (findDup (iterate (update (filter inside . cardinal)) inp)))
 
      let inp3 = Set.map to3 inp
-     print (Set.size (iterate update inp3 !! 200))
+     print (Set.size (iterate (update cardinal3) inp3 !! 200))
 
-update :: (Ord a, Neighbors a) => Set a -> Set a
-update m = Set.filter rule
-         $ Set.union m
-         $ Set.fromList
-         $ adjacents =<< Set.toList m
+update :: Ord a => (a -> [a]) -> Set a -> Set a
+update adjacents m
+  = Set.filter rule
+  $ Set.union m
+  $ Set.fromList
+  $ adjacents =<< Set.toList m
   where
     rule k = 1 == n || 2 == n && Set.notMember k m
       where n = count (`Set.member` m) (adjacents k)
 
 bugCoords :: [String] -> Set Coord
-bugCoords xs = Set.fromList [k | (k, '#') <- coordLines xs]
+bugCoords xs = Set.fromList [ addCoord (C (-2) (-2)) k | (k, '#') <- coordLines xs]
 
 biodiversity :: Set Coord -> Int
-biodiversity m = sum [ i | (i,k) <- zip (iterate (2*) 1) coords, Set.member k m]
-  where
-    coords = [C y x | y <- [0..4], x <- [0..4]]
+biodiversity m = sum [ 2^((2+y)*5+(2+x)) | c@(C y x) <- Set.toList m]
 
 findDup :: Ord a => [a] -> a
 findDup = go Set.empty
@@ -50,12 +50,8 @@ findDup = go Set.empty
        | Set.member x seen = x
        | otherwise         = go (Set.insert x seen) xs
 
-class    Neighbors a     where adjacents :: a -> [a]
-instance Neighbors Coord where adjacents = filter inside . cardinal
-instance Neighbors C3    where adjacents = cardinal3
-
 inside :: Coord -> Bool
-inside (C y x) = 0 <= x && 0 <= y && x < 5 && y < 5
+inside (C y x) = -2 <= x && -2 <= y && x <= 2 && y <= 2
 
 ------------------------------------------------------------------------
 -- 3-dimensional recursive board coordinates
@@ -70,24 +66,24 @@ to3 (C y x) = C3 0 y x
 cardinal3, left3, right3, above3, below3 :: C3 -> [C3]
 
 cardinal3 c =
-  concat [left3 c, right3 c, above3 c, below3 c]
+  concat [above3 c, left3 c, right3 c, below3 c]
 
 left3 (C3 d y x)
-  | x == 0         = [C3 (d-1) 2 1]
-  | x == 3, y == 2 = [C3 (d+1) i 4 | i <- [0..4]]
+  | x == -2        = [C3 (d-1) 0 (-1)]
+  | x == 1, y == 0 = [C3 (d+1) i 0 | i <- [-2..2]]
   | otherwise      = [C3 d y (x-1)]
 
 right3 (C3 d y x)
-  | x == 4         = [C3 (d-1) 2 3]
-  | x == 1, y == 2 = [C3 (d+1) i 0 | i <- [0..4]]
-  | otherwise      = [C3 d y (x+1)]
+  | x == 2          = [C3 (d-1) 0 1]
+  | x == -1, y == 0 = [C3 (d+1) i (-2) | i <- [-2..2]]
+  | otherwise       = [C3 d y (x+1)]
 
 below3 (C3 d y x)
-  | y == 4         = [C3 (d-1) 3 2]
-  | y == 1, x == 2 = [C3 (d+1) 0 i | i <- [0..4]]
-  | otherwise      = [C3 d (y+1) x]
+  | y == 2          = [C3 (d-1) 1 0]
+  | y == -1, x == 0 = [C3 (d+1) (-2) i | i <- [-2..2]]
+  | otherwise       = [C3 d (y+1) x]
 
 above3 (C3 d y x)
-  | y == 0         = [C3 (d-1) 1 2]
-  | y == 3, x == 2 = [C3 (d+1) 4 i | i <- [0..4]]
+  | y == -2        = [C3 (d-1) (-1) 0]
+  | y == 1, x == 0 = [C3 (d+1) 2 i | i <- [-2..2]]
   | otherwise      = [C3 d (y-1) x]
