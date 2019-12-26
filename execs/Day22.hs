@@ -8,7 +8,7 @@ Maintainer  : emertens@gmail.com
 
 <https://adventofcode.com/2019/day/22>
 
->>> let shuffleTest cmds = techsToLinearFn cmds `withModulus` 10 <$> [0..9]
+>>> let shuffleTest cmds = invert (techsToLinearFn cmds) `withModulus` 10 <$> [0..9]
 
 >>> shuffleTest [DealNew]
 [9,8,7,6,5,4,3,2,1,0]
@@ -64,16 +64,16 @@ parseTechnique
 -- Shuffles
 ------------------------------------------------------------------------
 
--- | Compute function for a shuffle instruction mapping indexes in
--- the shuffled deck to positions in the source deck.
-techToLinearFn :: Fractional a => Technique -> LinearFn a
-techToLinearFn DealNew     = add (-1) (scale (-1) x_)
-techToLinearFn (Cut     i) = add (fromInteger i) x_
-techToLinearFn (DealInc i) = scale (1/fromInteger i) x_
+-- | Compute function for a shuffle instruction mapping cards
+-- in the shuffled deck to positions in the shuffled deck.
+techToLinearFn :: KnownNat n => Technique -> LinearFn (Mod n)
+techToLinearFn DealNew     = LinearFn (-1) (-1)          -- λx. -x-1
+techToLinearFn (Cut     i) = LinearFn 1 (-fromInteger i) -- λx. x-i
+techToLinearFn (DealInc i) = LinearFn (fromInteger i) 0  -- λx. ix
 
 -- | Construts the linear function corresponding to applying the
 -- given shuffles in order from left to right.
-techsToLinearFn :: Fractional a => [Technique] -> LinearFn a
+techsToLinearFn :: KnownNat n => [Technique] -> LinearFn (Mod n)
 techsToLinearFn = foldMap techToLinearFn
 
 ------------------------------------------------------------------------
@@ -90,30 +90,19 @@ apply (LinearFn a b) x = a * x + b
 invert :: Fractional a => LinearFn a -> LinearFn a
 invert (LinearFn a b) = LinearFn (1/a) (-b/a)
 
--- | Identity function
-x_ :: Num a => LinearFn a
-x_ = LinearFn 1 0
-
-scale :: Num a => a -> LinearFn a -> LinearFn a
-scale x (LinearFn a b) = LinearFn (x * a) (x * b)
-
-add :: Num a => a -> LinearFn a -> LinearFn a
-add x (LinearFn a b) = LinearFn a (x + b)
-
--- | Composition of linear functions
+-- | Reverse-composition of linear functions
 --
 -- >>> let f = LinearFn 1 2
 -- >>> let g = LinearFn 3 4
 -- >>> (f <> g) `apply` 10
--- 36
--- >>> f `apply` (g `apply` 10)
--- 36
+-- 40
+-- >>> g `apply` (f `apply` 10)
+-- 40
 instance Num a => Semigroup (LinearFn a) where
-  LinearFn a b <> LinearFn c d = LinearFn (a*c) (b + a*d)
+  LinearFn c d <> LinearFn a b = LinearFn (a*c) (b + a*d)
 
--- | @'mempty' = 'x_'@
 instance Num a => Monoid (LinearFn a) where
-  mempty = x_
+  mempty = LinearFn 1 0
 
 ------------------------------------------------------------------------
 -- Driver code
@@ -123,13 +112,14 @@ main :: IO ()
 main =
   do techniques <- getParsedLines 22 parseTechnique
 
-     let shuffle :: Fractional a => LinearFn a
+     let shuffle :: KnownNat n => LinearFn (Mod n)
          shuffle = techsToLinearFn techniques
 
-     print ((invert shuffle `withModulus` 10007) 2019)
+     print ((shuffle `withModulus` 10007) 2019)
 
-     let iterations = 101741582076661 :: Natural
-     print ((stimes iterations shuffle `withModulus` 119315717514047) 2020)
+     let iterations  = 101741582076661 :: Int
+         decksize    = 119315717514047
+     print ((stimes iterations (invert shuffle) `withModulus` decksize) 2020)
 
 withModulus ::
   (forall n. KnownNat n => LinearFn (Mod n)) ->
