@@ -58,7 +58,7 @@ findDup = go Set.empty
 -- | Check that a coordinate is contained within the 5x5 region centered
 -- around the origin.
 inside :: Coord -> Bool
-inside (C y x) = -2 <= x && -2 <= y && x <= 2 && y <= 2
+inside (C y x) = abs x <= 2 && abs y <= 2
 
 ------------------------------------------------------------------------
 -- 3-dimensional recursive board coordinates
