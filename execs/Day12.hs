@@ -20,10 +20,10 @@ import Advent (getParsedLines, Parser, manyTill, satisfy, number, sepBy)
 import Data.List (transpose, elemIndex, foldl')
 import Data.Char (isAlpha)
 
-parseMoon :: Parser [Int]
+parseMoon :: Parser [Particle]
 parseMoon = "<" *> component `sepBy` ", " <* ">"
   where
-    component = manyTill (satisfy isAlpha) "=" *> number
+    component = newParticle <$ manyTill (satisfy isAlpha) "=" <*> number
 
 -- | One-dimensional particle with a position and velocity.
 data Particle = P !Int !Int -- ^ position velocity
@@ -35,17 +35,24 @@ newParticle x = P x 0
 
 main :: IO ()
 main =
-  do inp <- getParsedLines 12 parseMoon
+  do threeD_sim <- getParsedLines 12 parseMoon
+     let oneD_sims = transpose threeD_sim
+     print (part1 oneD_sims)
+     print (part2 oneD_sims)
 
-     let xs = transpose (map (map newParticle) inp)
 
-         x1 = [ iterate stepParticles x !! 1000 | x <- xs ]
+part1 :: [[Particle]] -> Int
+part1 oneD_sims = sum (map energy threeD_sim1000)
+  where
+    oneD_sims1000  = [ iterate stepParticles sim !! 1000 | sim <- oneD_sims ]
+    threeD_sim1000 = transpose oneD_sims1000
 
-     print (sum (map energy (transpose x1)))
 
-     let xn = map (repeatLength . iterate stepParticles) xs
+part2 :: [[Particle]] -> Int
+part2 oneD_sims = foldl' lcm 1 periods
+  where
+    periods = map (repeatLength . iterate stepParticles) oneD_sims
 
-     print (foldl' lcm 1 xn)
 
 -- | Compute the energy of a multi-dimensional particle given
 -- its dimensional components.
@@ -67,9 +74,4 @@ stepParticles ps = [ move (foldl' gravity p ps) | p <- ps ]
 
 -- | Apply gravity to the first particle based on the second.
 gravity :: Particle -> Particle -> Particle
-gravity (P x v) (P y _) = P x (v + g)
-  where
-    g = case compare x y of
-          LT -> 1
-          GT -> -1
-          EQ -> 0
+gravity (P x v) (P y _) = P x (v + signum (y-x))
