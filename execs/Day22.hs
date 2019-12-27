@@ -1,4 +1,4 @@
-{-# Language RankNTypes, OverloadedStrings, DeriveFunctor #-}
+{-# Language RankNTypes, OverloadedStrings #-}
 {-|
 Module      : Main
 Description : Day 22 solution
@@ -82,7 +82,7 @@ techsToLinearFn = foldMap techToLinearFn
 
 -- | Linear functions: @Linear a b ~ λx. ax+b@
 data LinearFn a = LinearFn !a !a
-  deriving (Functor, Show)
+  deriving Show
 
 apply :: Num a => LinearFn a -> a -> a
 apply (LinearFn a b) x = a * x + b

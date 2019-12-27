@@ -1,4 +1,3 @@
-{-# Language OverloadedStrings #-}
 {-|
 Module      : Main
 Description : Day 11 solution
