@@ -1,4 +1,3 @@
-{-# Language OverloadedStrings #-}
 {-|
 Module      : Main
 Description : Day 10 solution
@@ -13,7 +12,6 @@ module Main (main) where
 
 import           Advent
 import           Advent.Coord
-import           Control.Applicative
 import           Data.List
 import           Data.Foldable
 import           Data.Set (Set)
@@ -23,13 +21,12 @@ import           Data.Ratio ((%))
 
 main :: IO ()
 main =
-  do inp <- getParsedLines 10 (many (True <$ "#" <|> False <$ "."))
+  do inp <- getInputLines 10
 
-     let m :: Set Coord
-         m = Set.fromList
-                [ (C y x) | (y,row) <- zip [0..] inp, (x,True) <- zip [0..] row ]
+     let m = Set.fromList [ c | (c,'#') <- coordLines inp ]
 
-     let (base, vis) = maximumBy (comparing snd) [ (i, count (visible m i) m) | i <-  toList m ]
+     let (base, vis) = maximumBy (comparing snd)
+                       [ (i, count (visible m i) m) | i <- toList m ]
      print vis
      let C y x = part2 base (Set.delete base m) !! 199
      print (x * 100 + y)
@@ -37,7 +34,7 @@ main =
 part2 :: Coord -> Set Coord -> [Coord]
 part2 base m
   | Set.null m = []
-  | otherwise  = these ++ part2 base (Set.difference m (Set.fromList these))
+  | otherwise  = these ++ part2 base (m Set.\\ Set.fromList these)
   where
     these = filter (visible m base) (sortOn (toAngle . sub base) (toList m))
 
