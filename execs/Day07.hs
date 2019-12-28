@@ -18,7 +18,7 @@ as its own input!
 -}
 module Main (main) where
 
-import Advent         (compose, getParsedLines)
+import Advent         (getParsedLines)
 import Advent.Intcode (intCodeToList, memoryParser)
 import Data.Function  (fix)
 import Data.List      (permutations)
@@ -45,7 +45,7 @@ main =
 part1 ::
   ListFn {- ^ amplifier controller software   -} ->
   Int    {- ^ maximum initial thruster output -}
-part1 pgm = maximum [head (thrustController pgm p) | p <- permutations [0..4]]
+part1 = optimize head [0..4]
 
 -- | Run the given amplitude controller in a feedback loop across
 -- all permutations of the settings 5 through 9. Returns the
@@ -62,7 +62,16 @@ part1 pgm = maximum [head (thrustController pgm p) | p <- permutations [0..4]]
 part2 ::
   ListFn {- ^ amplifier controller software -} ->
   Int    {- ^ maximum final thruster output -}
-part2 pgm = maximum [last (thrustController pgm p) | p <- permutations [5..9]]
+part2 = optimize last [5..9]
+
+
+optimize ::
+  Ord a =>
+  ([Int] -> a) {- ^ output characterization    -} ->
+  [Int]        {- ^ phase available            -} ->
+  ListFn       {- ^ phases to outputs          -} ->
+  a            {- ^ maximized characterization -}
+optimize f phases pgm = maximum [f (thrustController pgm p) | p <- permutations phases]
 
 -- | Given a amplifier controller software function and a list of
 -- phase settings, generate the resulting list of thruster outputs.

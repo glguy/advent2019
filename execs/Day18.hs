@@ -8,8 +8,18 @@ Maintainer  : emertens@gmail.com
 
 <https://adventofcode.com/2019/day/18>
 
-This solution used roughly 40MB of RAM and runs
-in 40 seconds on my laptop.
+Approach:
+
+1. Reduce maze to a graph with 'extractGraph'
+   Nodes: starting points, gates, keys
+   Edges: shortest direct route between nodes
+
+2. Implement 'nextKey' function to find list of reachable keys
+   for a particular robot.
+
+3. Use Djikstra search to search the space of picking a robot to move
+   from its current position to an unvisited key until
+   all keys are visited.
 
 -}
 module Main (main) where
@@ -18,8 +28,11 @@ import           Advent
 import           Advent.Coord
 import           Advent.Search
 import           Data.Char
+import           Data.Maybe
 import           Data.Set (Set)
+import           Data.IntSet (IntSet)
 import qualified Data.Set as Set
+import qualified Data.IntSet as IntSet
 import qualified Data.Map as Map
 import           Data.Map (Map)
 import           Data.Array.Unboxed
@@ -30,78 +43,112 @@ main =
      let Just b = boundingBox (map fst inp)
          world1 = listArray b (map snd inp)
          start  = head [k | (k,'@') <- inp]
-         keyN   = count (isLower . snd) inp
 
-         done s = Set.size (akDoors (fst s)) == keyN
-         select = snd . head . filter done
+     -- part 1
+     print (allKeys world1 [start])
 
-     print (select (allKeys world1 (Set.singleton start)))
-
-     let world2 = world1 // [(c,'#') | c <- start : cardinal start]
-         start2 = Set.fromList [ f (g start) | f <- [above, below]
-                                             , g <- [left , right] ]
-
-     print (select (allKeys world2 start2))
-
-------------------------------------------------------------------------
--- Search that moves robots from key to key
-------------------------------------------------------------------------
-
-data AllKeys = AllKeys
-  { akLocation :: !(Set Coord) -- ^ robot locations
-  , akDoors    :: !(Set Char)  -- ^ opened doors
-  }
-  deriving (Ord, Eq, Show)
-
-allKeys ::
-  UArray Coord Char {- ^ world map               -} ->
-  Set Coord         {- ^ robot locations         -} ->
-  [(AllKeys, Int)]  {- ^ search states and costs -}
-allKeys world start = astar stepAK (AllKeys start Set.empty)
-  where
-    summaries = travelSummary world (Set.toList start)
-
-    stepAK AllKeys{..} =
-      [ (AllKeys (Set.insert loc (Set.delete who akLocation))
-                 doors'
-        , cost {- cost -}, 0)
-        | who <- Set.toList akLocation
-        , (loc, key, doors, cost) <- Map.findWithDefault undefined who summaries
-        , Set.notMember key akDoors
-        , doors `Set.isSubsetOf` akDoors
-        , let doors' = Set.insert key akDoors
-        ]
+     -- part 2
+     let fixups = [(c,'#') | c <- start : cardinal start]
+               ++ [(f (g start),'@') | f <- [above, below], g <- [left , right]]
+         world2 = world1 // fixups
+         start2 = [k | (k,'@') <- assocs world2]
+     print (allKeys world2 start2)
 
 ------------------------------------------------------------------------
 -- Search that finds shortest distances to the remaining keys
 ------------------------------------------------------------------------
 
-data Shortest = Shortest
-  { sSteps    :: !Int   -- ^ steps taken
-  , sLocation :: !Coord -- ^ current location
-  , sDoors    :: !(Set Char)
-  }
-  deriving Show
+data Cell = Start | Gate !Int | Key !Int
+  deriving (Eq, Show, Ord)
 
-travelSummary :: UArray Coord Char -> [Coord] -> Map Coord [(Coord, Char, Set Char, Int)]
-travelSummary world starts =
-  Map.fromList $
-    [(start, travelFrom start) | start <- starts] ++
-    [(start, travelFrom start) | (start, startKey) <- assocs world , isLower startKey]
+charToCell :: Char -> Maybe Cell
+charToCell x
+  | '@' == x  = Just Start
+  | isLower x = Just (Key  (ord x - ord 'a'))
+  | isUpper x = Just (Gate (ord x - ord 'A'))
+  | otherwise = Nothing
+
+------------------------------------------------------------------------
+-- Simplify down to starts, keys, gates, and paths between them
+------------------------------------------------------------------------
+
+extractGraph :: UArray Coord Char -> Map Coord [(Coord, Cell, Int)]
+extractGraph world =
+  Map.fromList
+  [ (pos, startSearch world pos cell)
+     | (pos, char) <- assocs (world :: UArray Coord Char)
+     , Just cell   <- [charToCell char]
+     ]
+
+startSearch :: UArray Coord Char -> Coord -> Cell -> [(Coord, Cell, Int)]
+startSearch world start startCell =
+  [ (here, cell, n)
+  | (here, Just cell, n) <- bfsOn (\(p,_,_)->p) step (start, Just startCell, 0)
+  ]
   where
-    travelFrom start =
-      [ (sLocation s, toUpper k, sDoors s, sSteps s)
-         | s <- bfsOn sLocation step1 (Shortest 0 start Set.empty)
-         , let k = world ! sLocation s
-         , isLower k ]
-
-    step1 Shortest{..} =
-      [ Shortest (sSteps+1) here doors'
-
-         -- Take a step but don't stop on a wall
-         | here <- cardinal sLocation
-         , let cell = world ! here
-         , cell /= '#'
-         , let doors' | 'A' <= cell, cell <= 'Z' = Set.insert cell sDoors
-                      | otherwise = sDoors
+    step (here, hereCell, n)
+      | here /= start && isJust hereCell = []
+      | otherwise =
+         [ (there, thereCell, n+1)
+         | there <- cardinal here
+         , let char = world ! there
+         , let thereCell = charToCell char
+         , char /= '#'
          ]
+
+------------------------------------------------------------------------
+-- Multiple robot search to gather all keys
+------------------------------------------------------------------------
+
+data AllKeys = AllKeys
+  { akKeys      :: !IntSet      -- ^ keys found
+  , akLocations :: !(Set Coord) -- ^ robot locations
+  }
+  deriving (Ord, Eq, Show)
+
+allKeys ::
+  UArray Coord Char {- ^ world map               -} ->
+  [Coord]           {- ^ robot locations         -} ->
+  Int               {- ^ search states and costs -}
+allKeys world start =
+  select $ astar stepAK $ AllKeys IntSet.empty $ Set.fromList start
+  where
+    keyN   = count isLower (elems world)
+    done s = IntSet.size (akKeys (fst s)) == keyN
+    select = snd . head . filter done
+
+    paths  = extractGraph world
+
+    stepAK AllKeys{..} =
+      [ (AllKeys (IntSet.insert k akKeys)
+                 (Set.insert loc (Set.delete who akLocations))
+        , cost {- cost -}, 0)
+        | who <- Set.toList akLocations
+        , let Just whoCell = charToCell (world ! who)
+        , (loc, k, cost) <- nextKey paths who whoCell akKeys
+        ]
+
+------------------------------------------------------------------------
+-- Single robot moves to adjacent, unvisited keys
+------------------------------------------------------------------------
+
+nextKey ::
+  Map Coord [(Coord, Cell, Int)] ->
+  Coord ->
+  Cell ->
+  IntSet ->
+  [(Coord, Int, Int)]
+nextKey paths start startCell keys =
+  [ (here, k, cost)
+    | ((here, Key k), cost) <- astarOn fst step (start,startCell) ]
+  where
+    step (here, hereCell) =
+      [ ((loc, cell), cost, 0)
+        | case hereCell of
+            Key k -> IntSet.member k keys
+            _     -> True
+        , (loc, cell, cost) <- paths Map.! here
+        , case cell of
+            Gate i -> IntSet.member i keys
+            _      -> True
+        ]
