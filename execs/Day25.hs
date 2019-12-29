@@ -61,15 +61,11 @@ graycode ::
   (a -> a) {- inverse action      -} ->
   [a]      {- items               -} ->
   [a]      {- search instructions -}
-graycode tick f1 f2 xs =
-  foldr (\x rec -> rec . cons (f1 x)
-                 . rec . cons (f2 x))
-        (cons tick)
-        xs
-        []
-
-cons :: a -> [a] -> [a]
-cons = (:)
+graycode tick _  _  [] = [tick]
+graycode tick f1 f2 (x:xs) =
+  graycode tick f1 f2 xs ++
+  [f1 x] ++
+  reverse (graycode tick f2 f1 xs)
 
 items :: [String]
 items =
