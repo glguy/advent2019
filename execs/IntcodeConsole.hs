@@ -1,23 +1,24 @@
 module Main (main) where
 
-import Advent.Intcode
+import Advent (memoryParser)
+import Control.Exception
 import Data.Char (chr, ord)
+import Data.Either
+import Data.Foldable
 import Data.List (intercalate)
 import Data.Map (Map)
 import Data.Sequence (Seq)
+import Intcode
+import System.Console.ANSI
+import System.Console.GetOpt
 import System.Environment
+import System.Exit
 import System.IO
+import System.IO.Error
 import Text.Megaparsec (parse, errorBundlePretty)
 import Text.Read (readMaybe)
 import qualified Data.Map as Map
 import qualified Data.Sequence as Seq
-import System.Console.ANSI
-import Control.Exception
-import System.IO.Error
-import System.Console.GetOpt
-import System.Exit
-import Data.Either
-import Data.Foldable
 
 ------------------------------------------------------------------------
 -- Command line arguments

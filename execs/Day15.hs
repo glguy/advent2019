@@ -11,10 +11,10 @@ Maintainer  : emertens@gmail.com
 -}
 module Main (main) where
 
-import Advent         (getParsedLines)
-import Advent.Coord   (Coord, above, below, left, right, origin)
-import Advent.Intcode (Effect(..), run, new, memoryParser)
-import Advent.Search  (bfsOn)
+import Advent        (getParsedLines, memoryParser)
+import Advent.Coord  (Coord, above, below, left, right, origin)
+import Advent.Search (bfsOn)
+import Intcode       (Effect(..), run, new)
 
 main :: IO ()
 main =

@@ -39,7 +39,7 @@ $ cabal run Day01
 
 ## Intcode Interpreter
 
-A few of my solutions rely on a common Intcode interpreter: [Intcode.hs](https://github.com/glguy/advent2019/blob/master/common/Advent/Intcode.hs)
+A few of my solutions rely on a Intcode interpreter library that I have extracted from this repository now that the contest is complete: [Intcode.hs](https://github.com/glguy/intcode/blob/master/src/Intcode.hs)
 
 ## Common libraries used
 

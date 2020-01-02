@@ -18,17 +18,17 @@ as its own input!
 -}
 module Main (main) where
 
-import Advent         (getParsedLines)
-import Advent.Intcode (intCodeToList, memoryParser)
-import Data.Function  (fix)
-import Data.List      (permutations)
+import Advent        (getParsedLines, memoryParser)
+import Data.Function (fix)
+import Data.List     (permutations)
+import Intcode       (intcodeToList)
 
 -- | A function from a list of input values to a list of output values.
 type ListFn = [Int] -> [Int]
 
 main :: IO ()
 main =
-  do [pgm] <- map intCodeToList <$> getParsedLines 7 memoryParser
+  do [pgm] <- map intcodeToList <$> getParsedLines 7 memoryParser
      print (part1 pgm)
      print (part2 pgm)
 
@@ -36,11 +36,11 @@ main =
 -- all permutations of the settings 0 through 4. Returns the
 -- maximum initial thruster output.
 --
--- >>> part1 (intCodeToList [3,15,3,16,1002,16,10,16,1,16,15,15,4,15,99,0,0])
+-- >>> part1 (intcodeToList [3,15,3,16,1002,16,10,16,1,16,15,15,4,15,99,0,0])
 -- 43210
--- >>> part1 (intCodeToList [3,23,3,24,1002,24,10,24,1002,23,-1,23,101,5,23,23,1,24,23,23,4,23,99,0,0])
+-- >>> part1 (intcodeToList [3,23,3,24,1002,24,10,24,1002,23,-1,23,101,5,23,23,1,24,23,23,4,23,99,0,0])
 -- 54321
--- >>> part1 (intCodeToList [3,31,3,32,1002,32,10,32,1001,31,-2,31,1007,31,0,33,1002,33,7,33,1,33,31,31,1,32,31,31,4,31,99,0,0,0])
+-- >>> part1 (intcodeToList [3,31,3,32,1002,32,10,32,1001,31,-2,31,1007,31,0,33,1002,33,7,33,1,33,31,31,1,32,31,31,4,31,99,0,0,0])
 -- 65210
 part1 ::
   ListFn {- ^ amplifier controller software   -} ->
@@ -51,10 +51,10 @@ part1 = optimize head [0..4]
 -- all permutations of the settings 5 through 9. Returns the
 -- maximum final thruster output.
 --
--- >>> part2 (intCodeToList [3,26,1001,26,-4,26,3,27,1002,27,2,27,1,27,26,27,4,27,1001,28,-1,28,1005,28,6,99,0,0,5])
+-- >>> part2 (intcodeToList [3,26,1001,26,-4,26,3,27,1002,27,2,27,1,27,26,27,4,27,1001,28,-1,28,1005,28,6,99,0,0,5])
 -- 139629729
 -- >>> :{
--- >>> part2 (intCodeToList [3,52,1001,52,-5,52,3,53,1,52,56,54,1007,54,5,55,1005,55,26,1001,54,
+-- >>> part2 (intcodeToList [3,52,1001,52,-5,52,3,53,1,52,56,54,1007,54,5,55,1005,55,26,1001,54,
 -- >>>                       -5,54,1105,1,12,1,53,54,53,1008,54,0,55,1001,55,1,55,2,53,55,53,4,
 -- >>>                       53,1001,56,-1,56,1005,56,6,99,0,0,0,0,10])
 -- >>> :}
@@ -80,9 +80,9 @@ optimize f phases pgm = maximum [f (thrustController pgm p) | p <- permutations 
 -- the instances are all sequenced together into a single loop. A starting
 -- @0@ element is added as an initial input.
 --
--- >>> thrustController (intCodeToList [3,15,3,16,1002,16,10,16,1,16,15,15,4,15,99,0,0]) [4,3,2,1,0]
+-- >>> thrustController (intcodeToList [3,15,3,16,1002,16,10,16,1,16,15,15,4,15,99,0,0]) [4,3,2,1,0]
 -- [43210]
--- >>> thrustController (intCodeToList [3,26,1001,26,-4,26,3,27,1002,27,2,27,1,27,26,27,4,27,1001,28,-1,28,1005,28,6,99,0,0,5]) [9,8,7,6,5]
+-- >>> thrustController (intcodeToList [3,26,1001,26,-4,26,3,27,1002,27,2,27,1,27,26,27,4,27,1001,28,-1,28,1005,28,6,99,0,0,5]) [9,8,7,6,5]
 -- [129,4257,136353,4363425,139629729]
 thrustController ::
   ListFn {- ^ amplifier controller software -} ->

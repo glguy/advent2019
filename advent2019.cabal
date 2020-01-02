@@ -11,6 +11,9 @@ maintainer:          emertens@gmail.com
 copyright:           2019 Eric Mertens
 build-type:          Simple
 
+common intcode
+  build-depends:       intcode ^>= 0.2,
+
 library
   hs-source-dirs:      common
   default-language:    Haskell2010
@@ -22,9 +25,6 @@ library
     Advent.Search
     Advent.Queue
     Advent.Visualize
-    Advent.Intcode
-    Advent.Intcode.Trace
-    Advent.Intcode.Conduino
 
   build-depends:
     base         ^>= 4.13,
@@ -49,14 +49,8 @@ test-suite doctests
     directory ^>= 1.3,
     filepath  ^>= 1.4,
 
-executable Breakout
-  main-is:             Breakout.hs
-  ghc-options:         -threaded
-  build-depends:       advent2019, base, conduino, transformers, containers, vty
-  hs-source-dirs:      execs
-  default-language:    Haskell2010
-
 executable IntcodeConsole
+  import:              intcode
   main-is:             IntcodeConsole.hs
   ghc-options:         -threaded
   build-depends:       advent2019, base, transformers, containers, megaparsec, ansi-terminal
@@ -65,11 +59,12 @@ executable IntcodeConsole
 
 executable Day01
   main-is:             Day01.hs
-  build-depends:       advent2019, base,
+  build-depends:       advent2019, base
   hs-source-dirs:      execs
   default-language:    Haskell2010
 
 executable Day02
+  import:              intcode
   main-is:             Day02.hs
   build-depends:       advent2019, base
   hs-source-dirs:      execs
@@ -88,6 +83,7 @@ executable Day04
   default-language:    Haskell2010
 
 executable Day05
+  import:              intcode
   main-is:             Day05.hs
   build-depends:       advent2019, base, containers
   hs-source-dirs:      execs
@@ -100,6 +96,7 @@ executable Day06
   default-language:    Haskell2010
 
 executable Day07
+  import:              intcode
   main-is:             Day07.hs
   build-depends:       advent2019, base, containers
   hs-source-dirs:      execs
@@ -112,6 +109,7 @@ executable Day08
   default-language:    Haskell2010
 
 executable Day09
+  import:              intcode
   main-is:             Day09.hs
   build-depends:       advent2019, base, containers
   hs-source-dirs:      execs
@@ -124,6 +122,7 @@ executable Day10
   default-language:    Haskell2010
 
 executable Day11
+  import:              intcode
   main-is:             Day11.hs
   build-depends:       advent2019, base, containers
   hs-source-dirs:      execs
@@ -136,6 +135,7 @@ executable Day12
   default-language:    Haskell2010
 
 executable Day13
+  import:              intcode
   main-is:             Day13.hs
   build-depends:       advent2019, base, containers
   hs-source-dirs:      execs
@@ -148,6 +148,7 @@ executable Day14
   default-language:    Haskell2010
 
 executable Day15
+  import:              intcode
   main-is:             Day15.hs
   build-depends:       advent2019, base
   hs-source-dirs:      execs
@@ -160,6 +161,7 @@ executable Day16
   default-language:    Haskell2010
 
 executable Day17
+  import:              intcode
   main-is:             Day17.hs
   build-depends:       advent2019, base, containers
   hs-source-dirs:      execs
@@ -172,6 +174,7 @@ executable Day18
   default-language:    Haskell2010
 
 executable Day19
+  import:              intcode
   main-is:             Day19.hs
   build-depends:       advent2019, base
   hs-source-dirs:      execs
@@ -184,6 +187,7 @@ executable Day20
   default-language:    Haskell2010
 
 executable Day21
+  import:              intcode
   main-is:             Day21.hs
   build-depends:       advent2019, base
   hs-source-dirs:      execs
@@ -196,6 +200,7 @@ executable Day22
   default-language:    Haskell2010
 
 executable Day23
+  import:              intcode
   main-is:             Day23.hs
   build-depends:       advent2019, base, containers
   hs-source-dirs:      execs
@@ -208,6 +213,7 @@ executable Day24
   default-language:    Haskell2010
 
 executable Day25
+  import:              intcode
   main-is:             Day25.hs
   build-depends:       advent2019, base
   hs-source-dirs:      execs

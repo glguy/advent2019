@@ -11,19 +11,18 @@ Maintainer  : emertens@gmail.com
 module Main (main) where
 
 import           Advent
-import           Advent.Intcode
 import           Advent.Coord
 import           Data.Char
+import           Data.List
 import           Data.Map (Map)
 import qualified Data.Map as Map
-
-import Data.List
-import Data.Maybe
+import           Data.Maybe
+import           Intcode
 
 main :: IO ()
 main =
   do [inp] <- getParsedLines 17 memoryParser
-     let ascii = map (chr . fromIntegral) (intCodeToList inp [])
+     let ascii = map (chr . fromIntegral) (intcodeToList inp [])
          world = Map.fromList [ (C y x, col)
                                 | (y,row) <- zip [0..] (lines ascii)
                                 , (x,col) <- zip [0..] row ]

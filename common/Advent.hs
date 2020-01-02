@@ -1,3 +1,4 @@
+{-# Language OverloadedStrings #-}
 module Advent
   ( module Advent
   , satisfy, anySingle, sepBy, manyTill
@@ -142,3 +143,6 @@ chunks _ [] = []
 chunks n xs =
   case splitAt n xs of
     (a,b) -> a : chunks n b
+
+memoryParser :: Parser [Int]
+memoryParser = number `sepBy` ","

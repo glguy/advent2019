@@ -10,11 +10,11 @@ Maintainer  : emertens@gmail.com
 -}
 module Main (main) where
 
-import           Advent (getParsedLines)
+import           Advent (getParsedLines, memoryParser)
 import           Advent.Coord
-import           Advent.Intcode (Effect(..), run, new, memoryParser)
 import           Data.Map (Map)
 import qualified Data.Map as Map
+import           Intcode (Effect(..), run, new)
 
 main :: IO ()
 main =

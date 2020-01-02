@@ -11,10 +11,10 @@ Maintainer  : emertens@gmail.com
 -}
 module Main (main) where
 
-import           Advent
-import           Advent.Intcode
+import           Advent (getParsedLines, memoryParser)
 import           Data.List
 import qualified Data.Set as Set
+import           Intcode
 
 main :: IO ()
 main =

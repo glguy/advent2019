@@ -10,8 +10,8 @@ Maintainer  : emertens@gmail.com
 -}
 module Main (main) where
 
-import           Advent (getParsedLines)
-import           Advent.Intcode
+import           Advent (getParsedLines, memoryParser)
+import           Intcode
 
 main :: IO ()
 main =

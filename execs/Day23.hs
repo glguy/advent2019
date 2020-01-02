@@ -10,12 +10,12 @@ Maintainer  : emertens@gmail.com
 -}
 module Main (main) where
 
-import           Advent         (getParsedLines)
-import           Advent.Queue   (Queue((:<|)))
+import           Advent       (getParsedLines, memoryParser)
+import           Advent.Queue (Queue((:<|)))
 import qualified Advent.Queue as Queue
-import           Advent.Intcode (Effect(..), memoryParser, feedInput, run, new)
-import           Data.IntMap    (IntMap)
+import           Data.IntMap  (IntMap)
 import qualified Data.IntMap as IntMap
+import           Intcode      (Effect(..), feedInput, run, new)
 
 main :: IO ()
 main =

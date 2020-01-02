@@ -23,11 +23,10 @@ Maintainer  : emertens@gmail.com
 -}
 module Main (main) where
 
-import Advent
-import Advent.Intcode
-import Data.Char
+import Advent        (getParsedLines, memoryParser)
+import Data.Char     (ord, chr)
 import Data.Foldable (traverse_)
-
+import Intcode
 
 main :: IO ()
 main =
@@ -37,7 +36,7 @@ main =
 
 asciiComputer :: [Int] -> [String] -> [String]
 asciiComputer inp cmds =
-  lines $ map chr $ intCodeToList inp $ map ord $ unlines cmds
+  lines $ map chr $ intcodeToList inp $ map ord $ unlines cmds
 
 search :: [String]
 search =
