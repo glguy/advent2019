@@ -19,12 +19,12 @@ Maintainer  : emertens@gmail.com
 -}
 module Main (main) where
 
-import Advent  (getParsedLines, memoryParser)
+import Advent  (getIntcodeInput)
 import Intcode (intcodeToList)
 
 main :: IO ()
 main =
-  do [inp] <- getParsedLines 9 memoryParser
+  do inp <- getIntcodeInput 9
      let go i = print (head (intcodeToList inp [i]))
      go 1
      go 2

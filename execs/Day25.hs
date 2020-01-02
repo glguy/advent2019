@@ -23,14 +23,14 @@ Maintainer  : emertens@gmail.com
 -}
 module Main (main) where
 
-import Advent        (getParsedLines, memoryParser)
+import Advent        (getIntcodeInput)
 import Data.Char     (ord, chr)
 import Data.Foldable (traverse_)
 import Intcode
 
 main :: IO ()
 main =
-  do [inp] <- getParsedLines 25 memoryParser
+  do inp <- getIntcodeInput 25
      --traverse_ putStrLn (asciiComputer inp direct)
      traverse_ putStrLn (asciiComputer inp search)
 

@@ -10,12 +10,12 @@ Maintainer  : emertens@gmail.com
 -}
 module Main (main) where
 
-import           Advent (getParsedLines, memoryParser)
-import           Intcode
+import Advent (getIntcodeInput)
+import Intcode
 
 main :: IO ()
 main =
-  do [pgm] <- map new <$> getParsedLines 2 memoryParser
+  do pgm <- new <$> getIntcodeInput 2
      print (startup 12 2 pgm)
      print (head [ 100 * noun + verb
                  | noun <- [0..99]

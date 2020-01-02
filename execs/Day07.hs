@@ -18,7 +18,7 @@ as its own input!
 -}
 module Main (main) where
 
-import Advent        (getParsedLines, memoryParser)
+import Advent        (getIntcodeInput)
 import Data.Function (fix)
 import Data.List     (permutations)
 import Intcode       (intcodeToList)
@@ -28,7 +28,7 @@ type ListFn = [Int] -> [Int]
 
 main :: IO ()
 main =
-  do [pgm] <- map intcodeToList <$> getParsedLines 7 memoryParser
+  do pgm <- intcodeToList <$> getIntcodeInput 7
      print (part1 pgm)
      print (part2 pgm)
 

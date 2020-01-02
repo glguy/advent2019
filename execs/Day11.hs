@@ -10,7 +10,7 @@ Maintainer  : emertens@gmail.com
 -}
 module Main (main) where
 
-import           Advent (getParsedLines, memoryParser)
+import           Advent (getIntcodeInput)
 import           Advent.Coord
 import           Data.Map (Map)
 import qualified Data.Map as Map
@@ -18,7 +18,7 @@ import           Intcode (Effect(..), run, new)
 
 main :: IO ()
 main =
-  do [inp] <- getParsedLines 11 memoryParser
+  do inp <- getIntcodeInput 11
 
      let start  = robot origin north (run (new inp))
          run1   = start Map.empty

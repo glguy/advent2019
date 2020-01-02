@@ -11,18 +11,17 @@ Maintainer  : emertens@gmail.com
 -}
 module Main (main) where
 
-import           Advent (getParsedLines, memoryParser)
+import           Advent (getIntcodeInput)
 import           Data.List
 import qualified Data.Set as Set
 import           Intcode
 
 main :: IO ()
 main =
-  do [inp] <- getParsedLines 13 memoryParser
-     let mach = new inp
+  do mach <- new <$> getIntcodeInput 13
 
      print (part1 mach)
-     print (robot Nothing Nothing 0 (run (set 0 2 (new inp))))
+     print (robot Nothing Nothing 0 (run (set 0 2 mach)))
 
 part1 :: Machine -> Int
 part1 = Set.size . foldl' write Set.empty . tileWrites . run

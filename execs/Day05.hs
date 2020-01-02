@@ -35,15 +35,12 @@ This solution works with the following passes:
 -}
 module Main (main) where
 
-import           Advent        (Parser, getParsedLines, memoryParser)
-import           Data.Bool     (bool)
-import           Data.Sequence (Seq)
-import qualified Data.Sequence as Seq
-import           Intcode       (intcodeToList)
+import Advent  (getIntcodeInput)
+import Intcode (intcodeToList)
 
 main :: IO ()
 main =
-  do [inp] <- getParsedLines 5 memoryParser
+  do inp <- getIntcodeInput 5
      let go i = print (last (intcodeToList inp [i]))
      go 1
      go 5

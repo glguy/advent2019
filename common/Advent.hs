@@ -146,3 +146,6 @@ chunks n xs =
 
 memoryParser :: Parser [Int]
 memoryParser = number `sepBy` ","
+
+getIntcodeInput :: Int -> IO [Int]
+getIntcodeInput i = getParsedInput i (memoryParser <* newline <* eof)

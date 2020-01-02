@@ -21,7 +21,7 @@ import           Intcode
 
 main :: IO ()
 main =
-  do [inp] <- getParsedLines 17 memoryParser
+  do inp <- getIntcodeInput 17
      let ascii = map (chr . fromIntegral) (intcodeToList inp [])
          world = Map.fromList [ (C y x, col)
                                 | (y,row) <- zip [0..] (lines ascii)

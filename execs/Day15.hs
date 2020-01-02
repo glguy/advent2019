@@ -11,14 +11,14 @@ Maintainer  : emertens@gmail.com
 -}
 module Main (main) where
 
-import Advent        (getParsedLines, memoryParser)
+import Advent        (getIntcodeInput)
 import Advent.Coord  (Coord, above, below, left, right, origin)
 import Advent.Search (bfsOn)
 import Intcode       (Effect(..), run, new)
 
 main :: IO ()
 main =
-  do [intcode] <- getParsedLines 15 memoryParser
+  do intcode <- getIntcodeInput 15
      let part1:_ = filter onOxygen (explore (newSearchState intcode))
      print (distance part1)
      print (distance (last (explore part1{distance = 0})))

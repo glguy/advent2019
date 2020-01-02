@@ -10,7 +10,7 @@ Maintainer  : emertens@gmail.com
 -}
 module Main (main) where
 
-import           Advent       (getParsedLines, memoryParser)
+import           Advent       (getIntcodeInput)
 import           Advent.Queue (Queue((:<|)))
 import qualified Advent.Queue as Queue
 import           Data.IntMap  (IntMap)
@@ -19,8 +19,7 @@ import           Intcode      (Effect(..), feedInput, run, new)
 
 main :: IO ()
 main =
-  do [pgm] <- getParsedLines 23 memoryParser
-     let events = startup pgm
+  do events <- startup <$> getIntcodeInput 23
      print (head     [y | SetY  y <- events])
      print (firstDup [y | SendY y <- events])
 

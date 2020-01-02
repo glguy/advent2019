@@ -10,13 +10,13 @@ Maintainer  : emertens@gmail.com
 -}
 module Main (main) where
 
-import Advent    (getParsedLines, memoryParser)
+import Advent    (getIntcodeInput)
 import Data.List (find)
 import Intcode   (intcodeToList)
 
 main :: IO ()
 main =
-  do [inp] <- getParsedLines 19 memoryParser
+  do inp <- getIntcodeInput 19
      let f x y = 1 == head (intcodeToList inp [x,y])
      print $ length [ () | x <- [0..49], y <- [0..49], f x y]
      print $ part2 f 0 100

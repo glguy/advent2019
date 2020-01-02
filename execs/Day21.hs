@@ -10,13 +10,13 @@ Maintainer  : emertens@gmail.com
 -}
 module Main (main) where
 
-import Advent    (getParsedLines, memoryParser)
+import Advent    (getIntcodeInput)
 import Data.Char (ord)
 import Intcode   (intcodeToList)
 
 main :: IO ()
 main =
-  do [inp] <- getParsedLines 21 memoryParser
+  do inp <- getIntcodeInput 21
      let letsGo = print . last . intcodeToList inp . map ord
      letsGo part1
      letsGo part2
