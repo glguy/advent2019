@@ -23,7 +23,6 @@ main =
      let events = startup pgm
      print (head     [y | SetY  y <- events])
      print (firstDup [y | SendY y <- events])
-     mapM_ print $ take 200 events
 
 data Packet = Packet !Int !Int !Int -- ^ destination, x, y
 
