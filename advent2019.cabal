@@ -28,14 +28,9 @@ library
 
   build-depends:
     base         ^>= 4.13,
-    array        ^>= 0.5.3,
-    conduino     ^>= 0.2,
     containers   ^>= 0.6,
     JuicyPixels  ^>= 3.3.2,
-    MemoTrie     ^>= 0.6.9,
     megaparsec   ^>= 8.0,
-    vector       ^>= 0.12,
-    transformers ^>= 0.5,
 
 test-suite doctests
   type:          exitcode-stdio-1.0

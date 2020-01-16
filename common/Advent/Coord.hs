@@ -13,7 +13,6 @@ import           Data.Foldable
 import           Data.Ix
 import           Data.Map (Map)
 import qualified Data.Map as Map
-import           Data.MemoTrie
 import           GHC.Arr
 import           GHC.Generics
 
@@ -77,12 +76,6 @@ north = C (-1) 0
 
 addCoord :: Coord -> Coord -> Coord
 addCoord (C y x) (C v u) = C (y+v) (x+u)
-
-instance HasTrie Coord where
-  newtype Coord :->: r = CoordTrie { unCoordTrie :: Reg Coord :->: r }
-  trie                 = trieGeneric CoordTrie
-  untrie               = untrieGeneric unCoordTrie
-  enumerate            = enumerateGeneric unCoordTrie
 
 drawCoords :: Map Coord Char -> String
 drawCoords pixels = unlines [[pixel (C y x) | x <- [minx .. maxx]] | y <- [miny .. maxy]]
