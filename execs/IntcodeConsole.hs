@@ -9,6 +9,7 @@ import Data.List (intercalate)
 import Data.Map (Map)
 import Data.Sequence (Seq)
 import Intcode
+import Intcode.Machine
 import System.Console.ANSI
 import System.Console.GetOpt
 import System.Environment
@@ -239,7 +240,7 @@ infoCommand :: [String] -> Console -> IO ()
 infoCommand _ con =
   do metaprintLn ("PC : " ++ show (pc      (machine con)))
      metaprintLn ("REL: " ++ show (relBase (machine con)))
-     metaprintLn ("CNG: " ++ show (length (memory (machine con))))
+     metaprintLn ("CNG: " ++ show (length (memUpdates (machine con))))
      prompt con
 
 helpCommand :: [String] -> Console -> IO ()
@@ -259,7 +260,7 @@ outputCommand args con =
 
 changesCommand :: [String] -> Console -> IO ()
 changesCommand _ con =
-  do metaprintLn (show (memory (machine con)))
+  do metaprintLn (show (memUpdates (machine con)))
      prompt con
 
 backCommand :: [String] -> Console -> IO ()
