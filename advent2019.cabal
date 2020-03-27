@@ -9,7 +9,14 @@ license-file:        LICENSE
 author:              Eric Mertens
 maintainer:          emertens@gmail.com
 copyright:           2019 Eric Mertens
+homepage:            https://github.com/glguy/advent2019
+bug-reports:         https://github.com/glguy/advent2019/issues
 build-type:          Simple
+tested-with:         GHC==8.8.3
+
+source-repository head
+  type: git
+  location: https://github.com/glguy/advent2019
 
 common intcode
   build-depends:       intcode ^>= 0.3,
@@ -27,10 +34,11 @@ library
     Advent.Visualize
 
   build-depends:
-    base         ^>= 4.13,
+    base         >= 4.13 && < 4.15,
     containers   ^>= 0.6,
     JuicyPixels  ^>= 3.3.2,
     megaparsec   ^>= 8.0,
+
 
 test-suite doctests
   type:          exitcode-stdio-1.0
