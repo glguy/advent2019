@@ -1,6 +1,7 @@
 cabal-version:       2.4
 name:                advent2019
 version:             0.1.0.0
+category:            None
 synopsis:            Advent of Code 2019 Solutions
 description:         These are my cleaned-up solutions to the Advent of Code
                      programming game. <https://adventofcode.com>
