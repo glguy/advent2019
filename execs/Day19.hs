@@ -10,20 +10,21 @@ Maintainer  : emertens@gmail.com
 -}
 module Main (main) where
 
-import Advent    (getIntcodeInput)
-import Data.List (find)
-import Intcode   (intcodeToList)
+import Advent (getIntcodeInput)
+import Intcode (intcodeToList)
 
 main :: IO ()
 main =
   do inp <- getIntcodeInput 19
-     let f x y = 1 == head (intcodeToList inp [x,y])
-     print $ length [ () | x <- [0..49], y <- [0..49], f x y]
-     print $ part2 f 0 100
+     let p x y = 1 == head (intcodeToList inp [x,y])
+     print (length [ () | x <- [0..49], y <- [0..49], p x y])
+     print (part2 p 0 100)
 
 part2 :: (Int -> Int -> Bool) -> Int -> Int -> Int
-part2 f x0 y
-  | f (x+99) (y-99) = x * 10000 + y - 99
-  | otherwise       = part2 f x (y+1)
+part2 p x y
+  | bottomLeft, topRight = x * 10000 + y - 99
+  | bottomLeft           = part2 p x (y+1)
+  | otherwise            = part2 p (x+1) y
   where
-    Just x = find (`f` y) [x0..]
+    topRight   = p (x+99) (y-99)
+    bottomLeft = p x y
