@@ -1,4 +1,4 @@
-{-# Language BlockArguments #-}
+{-# Language ImportQualifiedPost #-}
 {-|
 Module      : Main
 Description : Day 13 solution
@@ -11,51 +11,31 @@ Maintainer  : emertens@gmail.com
 -}
 module Main (main) where
 
-import           Advent (getIntcodeInput)
-import           Data.List
-import qualified Data.Set as Set
-import           Intcode
+import Advent (getIntcodeInput)
+import Data.Map (Map)
+import Data.Map qualified as Map
+import Intcode (Effect(..), new, run, set)
 
 main :: IO ()
 main =
   do mach <- new <$> getIntcodeInput 13
+     print (part1       (run          mach ))
+     print (part2 0 0 0 (run (set 0 2 mach)))
 
-     print (part1 mach)
-     print (robot Nothing Nothing 0 (run (set 0 2 mach)))
+part1 :: Effect -> Int
+part1 = Map.size . Map.filter (2==) . getImage Map.empty
 
-part1 :: Machine -> Int
-part1 = Set.size . foldl' write Set.empty . tileWrites . run
-  where
-    write blocks (x,y,2) = Set.insert (x,y) blocks
-    write blocks (x,y,_) = Set.delete (x,y) blocks
+getImage :: Map (Int, Int) Int -> Effect -> Map (Int, Int) Int
+getImage m (Output x (Output y (Output t e))) = getImage (Map.insert (x,y) t m) e
+getImage m _                                  = m
 
-tileWrites :: Effect -> [(Int, Int, Int)]
-tileWrites effect =
+part2 :: Int -> Int -> Int -> Effect -> Int
+part2 ball paddle score effect =
   case effect of
-    Halt                                   -> []
-    Output x (Output y (Output t effect')) -> (x,y,t) : tileWrites effect'
-    _                                      -> error "tileWrites: bad program"
-
-robot :: Maybe Int -> Maybe Int -> Int -> Effect -> Int
-robot ball paddle score effect =
-  case effect of
-
-    Halt -> score
-
-    Output (-1) (Output 0 (Output score' effect')) ->
-      robot ball paddle score' effect'
-
-    Output x (Output _ (Output t effect'))
-      | t == 3 -> robot ball (Just x) score effect'
-      | t == 4 -> robot (Just x) paddle score effect'
-      | otherwise -> robot ball paddle score effect'
-
-    Input f ->
-        robot ball paddle score
-         case (ball, paddle) of
-           (Just b, Just p)
-             | b < p -> f (-1)
-             | b > p -> f 1
-           _ -> f 0
-
-    _ -> error "robot: bad program"
+    Output x (Output y (Output t effect'))
+      | t == 4            -> part2 x    paddle score effect'
+      | t == 3            -> part2 ball x      score effect'
+      | x == (-1), y == 0 -> part2 ball paddle t     effect'
+      | otherwise         -> part2 ball paddle score effect'
+    Input f               -> part2 ball paddle score (f (signum (ball - paddle)))
+    _                     -> score
