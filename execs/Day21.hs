@@ -10,9 +10,9 @@ Maintainer  : emertens@gmail.com
 -}
 module Main (main) where
 
-import Advent    (getIntcodeInput)
+import Advent (getIntcodeInput)
 import Data.Char (ord)
-import Intcode   (intcodeToList)
+import Intcode (intcodeToList)
 
 main :: IO ()
 main =
