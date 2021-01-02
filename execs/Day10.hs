@@ -27,9 +27,6 @@ main =
      let C y x = spiralOrder byAngles !! 199
      print (x * 100 + y) -- part 2
 
-collectBy :: Ord k => (a -> k) -> [a] -> Map k [a]
-collectBy f xs = Map.fromListWith (++) [(f x, [x]) | x <- xs]
-
 -- Given a list of asteroid locations, the other asteroids
 -- arranged by their angle from the best base in order of
 -- distance from that base.
@@ -57,3 +54,8 @@ angle (C y x)
   | otherwise      = mk 4 (-y) (-x) -- upper left
   where
      mk i a b = Angle i (fromIntegral a % fromIntegral b)
+
+-- | Given a characterizing function arrange elements that
+-- have the same characterization.
+collectBy :: Ord k => (a -> k) -> [a] -> Map k [a]
+collectBy f xs = Map.fromListWith (++) [(f x, [x]) | x <- xs]
