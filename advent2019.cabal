@@ -13,7 +13,7 @@ copyright:           2019 Eric Mertens
 homepage:            https://github.com/glguy/advent2019
 bug-reports:         https://github.com/glguy/advent2019/issues
 build-type:          Simple
-tested-with:         GHC==8.8.3
+tested-with:         GHC==8.10.2
 
 source-repository head
   type: git
@@ -35,7 +35,7 @@ library
     Advent.Visualize
 
   build-depends:
-    base         >= 4.13 && < 4.15,
+    base         ^>= 4.14,
     containers   ^>= 0.6,
     JuicyPixels  ^>= 3.3.2,
     megaparsec   ^>= 9.0,
@@ -53,172 +53,130 @@ test-suite doctests
     directory ^>= 1.3,
     filepath  ^>= 1.4,
 
+common day
+  build-depends:       advent2019, base
+  hs-source-dirs:      execs
+  default-language:    Haskell2010
+
 executable IntcodeConsole
-  import:              intcode
+  import:              day, intcode
   main-is:             IntcodeConsole.hs
   ghc-options:         -threaded
-  build-depends:       advent2019, base, transformers, containers, megaparsec, ansi-terminal
-  hs-source-dirs:      execs
-  default-language:    Haskell2010
+  build-depends:       transformers, containers, megaparsec, ansi-terminal
 
 executable Day01
+  import:              day
   main-is:             Day01.hs
-  build-depends:       advent2019, base
-  hs-source-dirs:      execs
-  default-language:    Haskell2010
 
 executable Day02
-  import:              intcode
+  import:              day, intcode
   main-is:             Day02.hs
-  build-depends:       advent2019, base
-  hs-source-dirs:      execs
-  default-language:    Haskell2010
 
 executable Day03
+  import:              day
   main-is:             Day03.hs
-  build-depends:       advent2019, base, containers
-  hs-source-dirs:      execs
-  default-language:    Haskell2010
+  build-depends:       containers
 
 executable Day04
+  import:              day
   main-is:             Day04.hs
-  build-depends:       advent2019, base
-  hs-source-dirs:      execs
-  default-language:    Haskell2010
 
 executable Day05
-  import:              intcode
+  import:              day, intcode
   main-is:             Day05.hs
-  build-depends:       advent2019, base, containers
-  hs-source-dirs:      execs
-  default-language:    Haskell2010
+  build-depends:       containers
 
 executable Day06
+  import:              day
   main-is:             Day06.hs
-  build-depends:       advent2019, base, containers
-  hs-source-dirs:      execs
-  default-language:    Haskell2010
+  build-depends:       containers
 
 executable Day07
-  import:              intcode
+  import:              day, intcode
   main-is:             Day07.hs
-  build-depends:       advent2019, base, containers
-  hs-source-dirs:      execs
-  default-language:    Haskell2010
+  build-depends:       containers
 
 executable Day08
+  import:              day
   main-is:             Day08.hs
-  build-depends:       advent2019, base, containers
-  hs-source-dirs:      execs
-  default-language:    Haskell2010
+  build-depends:       containers
 
 executable Day09
-  import:              intcode
+  import:              day, intcode
   main-is:             Day09.hs
-  build-depends:       advent2019, base, containers
-  hs-source-dirs:      execs
-  default-language:    Haskell2010
+  build-depends:       containers
 
 executable Day10
+  import:              day
   main-is:             Day10.hs
-  build-depends:       advent2019, base, containers
-  hs-source-dirs:      execs
-  default-language:    Haskell2010
+  build-depends:       containers
 
 executable Day11
-  import:              intcode
+  import:              day, intcode
   main-is:             Day11.hs
-  build-depends:       advent2019, base, containers
-  hs-source-dirs:      execs
-  default-language:    Haskell2010
+  build-depends:       containers
 
 executable Day12
+  import:              day
   main-is:             Day12.hs
-  build-depends:       advent2019, base
-  hs-source-dirs:      execs
-  default-language:    Haskell2010
 
 executable Day13
-  import:              intcode
+  import:              day, intcode
   main-is:             Day13.hs
-  build-depends:       advent2019, base, containers
-  hs-source-dirs:      execs
-  default-language:    Haskell2010
+  build-depends:       containers
 
 executable Day14
+  import:              day
   main-is:             Day14.hs
-  build-depends:       advent2019, base, containers
-  hs-source-dirs:      execs
-  default-language:    Haskell2010
+  build-depends:       containers
 
 executable Day15
-  import:              intcode
+  import:              day, intcode
   main-is:             Day15.hs
-  build-depends:       advent2019, base
-  hs-source-dirs:      execs
-  default-language:    Haskell2010
 
 executable Day16
+  import:              day
   main-is:             Day16.hs
-  build-depends:       advent2019, base, vector
-  hs-source-dirs:      execs
-  default-language:    Haskell2010
+  build-depends:       vector
 
 executable Day17
-  import:              intcode
+  import:              day, intcode
   main-is:             Day17.hs
-  build-depends:       advent2019, base, containers
-  hs-source-dirs:      execs
-  default-language:    Haskell2010
+  build-depends:       containers
 
 executable Day18
+  import:              day
   main-is:             Day18.hs
-  build-depends:       advent2019, base, containers, array
-  hs-source-dirs:      execs
-  default-language:    Haskell2010
+  build-depends:       containers, array
 
 executable Day19
-  import:              intcode
+  import:              day, intcode
   main-is:             Day19.hs
-  build-depends:       advent2019, base
-  hs-source-dirs:      execs
-  default-language:    Haskell2010
 
 executable Day20
+  import:              day
   main-is:             Day20.hs
-  build-depends:       advent2019, base, containers, array
-  hs-source-dirs:      execs
-  default-language:    Haskell2010
+  build-depends:       containers, array
 
 executable Day21
-  import:              intcode
+  import:              day, intcode
   main-is:             Day21.hs
-  build-depends:       advent2019, base
-  hs-source-dirs:      execs
-  default-language:    Haskell2010
 
 executable Day22
+  import:              day
   main-is:             Day22.hs
-  build-depends:       advent2019, base, arithmoi
-  hs-source-dirs:      execs
-  default-language:    Haskell2010
+  build-depends:       arithmoi
 
 executable Day23
-  import:              intcode
+  import:              day, intcode
   main-is:             Day23.hs
-  build-depends:       advent2019, base, containers, transformers
-  hs-source-dirs:      execs
-  default-language:    Haskell2010
+  build-depends:       containers, transformers
 
 executable Day24
+  import:              day
   main-is:             Day24.hs
-  build-depends:       advent2019, base, containers
-  hs-source-dirs:      execs
-  default-language:    Haskell2010
+  build-depends:       base, containers
 
 executable Day25
-  import:              intcode
+  import:              day, intcode
   main-is:             Day25.hs
-  build-depends:       advent2019, base
-  hs-source-dirs:      execs
-  default-language:    Haskell2010
