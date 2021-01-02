@@ -22,25 +22,24 @@ import Data.Ratio ((%))
 main :: IO ()
 main =
   do inp <- getInputLines 10
-     let (base, byAngles) = findTheBase [c | (c,'#') <- coordLines inp]
+     let byAngles = findTheBase [c | (c,'#') <- coordLines inp]
      print (Map.size byAngles) -- part 1
-     let C y x = spiralOrder base byAngles !! 199
+     let C y x = spiralOrder byAngles !! 199
      print (x * 100 + y) -- part 2
 
 collectBy :: Ord k => (a -> k) -> [a] -> Map k [a]
 collectBy f xs = Map.fromListWith (++) [(f x, [x]) | x <- xs]
 
--- Given a list of asteroid locations, return the location of the
--- asteroid with the largest collection of unique angles to other
--- asteroids
-findTheBase :: [Coord] -> (Coord, Map Angle [Coord])
+-- Given a list of asteroid locations, the other asteroids
+-- arranged by their angle from the best base in order of
+-- distance from that base.
+findTheBase :: [Coord] -> Map Angle [Coord]
 findTheBase world =
-  maximumBy (comparing (Map.size . snd))
-    [(i, collectBy (angle . sub i) xs) | (i,xs) <- pickOne world]
+  maximumBy (comparing Map.size)
+  [sortOn (manhattan i) <$> collectBy (angle . sub i) xs | (i,xs) <- pickOne world]
 
-spiralOrder :: Coord -> Map Angle [Coord] -> [Coord]
-spiralOrder base byAngles =
-  concat (transpose (map (sortOn (manhattan base)) (Map.elems byAngles)))
+spiralOrder :: Map Angle [Coord] -> [Coord]
+spiralOrder = concat . transpose . Map.elems
 
 -- 'subtract' but for 'Coord'
 sub :: Coord -> Coord -> Coord
