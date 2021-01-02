@@ -1,4 +1,4 @@
-{-# Language RecordWildCards #-}
+{-# Language ImportQualifiedPost, RecordWildCards #-}
 {-|
 Module      : Main
 Description : Day 18 solution
@@ -24,21 +24,18 @@ Approach:
 -}
 module Main (main) where
 
-import           Advent
-import           Advent.Coord
-import           Advent.Search
-import           Data.Char
-import           Data.Maybe
-import           Data.Set (Set)
-import           Data.IntSet (IntSet)
-import qualified Data.Set as Set
-import qualified Data.IntSet as IntSet
-import qualified Data.Map as Map
-import qualified Data.Map.Strict as MapStrict
-import           Data.Map (Map)
-import           Data.Array.Unboxed
-import           Data.List
-import           Debug.Trace
+import Advent
+import Advent.Coord
+import Advent.Search
+import Data.Char
+import Data.Maybe
+import Data.Set (Set)
+import Data.IntSet (IntSet)
+import Data.Set qualified as Set
+import Data.IntSet qualified as IntSet
+import Data.Map qualified as Map
+import Data.Map (Map)
+import Data.Array.Unboxed
 
 main :: IO ()
 main =
@@ -51,11 +48,11 @@ main =
      print (allKeys world1 [start])
 
      -- part 2
-     --let fixups = [(c,'#') | c <- start : cardinal start]
-     --          ++ [(f (g start),'@') | f <- [above, below], g <- [left , right]]
-     --    world2 = world1 // fixups
-     --    start2 = [k | (k,'@') <- assocs world2]
-     --print (allKeys world2 start2)
+     let fixups = [(c,'#') | c <- start : cardinal start]
+               ++ [(f (g start),'@') | f <- [above, below], g <- [left , right]]
+         world2 = world1 // fixups
+         start2 = [k | (k,'@') <- assocs world2]
+     print (allKeys world2 start2)
 
 ------------------------------------------------------------------------
 -- Search that finds shortest distances to the remaining keys
@@ -114,7 +111,6 @@ allKeys ::
   [Coord]           {- ^ robot locations         -} ->
   Int               {- ^ search states and costs -}
 allKeys world start =
-  traceShow (keysSSP world paths) $
   select $ astar stepAK $ AllKeys IntSet.empty $ Set.fromList start
   where
     keyN   = count isLower (elems world)
@@ -155,35 +151,4 @@ nextKey paths start startCell keys =
         , case cell of
             Gate i -> IntSet.member i keys
             _      -> True
-        ]
-
-keysSSP ::
-  UArray Coord Char ->
-  Map Coord [(Coord, x, Int)] ->
-  Map (Coord, Coord) Int
-keysSSP world direct = Map.filterWithKey scrub (foldl' addGen gen0 ks)
-  where
-    scrub (c1,c2) _
-      | Just Key{} <- charToCell (world ! c1)
-      , Just Key{} <- charToCell (world ! c2) = True
-      | otherwise = False
-
-    ks = Map.keys direct
-    gen0 = Map.fromList [ ((src,dst), cost)
-                           | (src,dsts) <- Map.toList direct
-                           , (dst,_,cost) <- dsts
-                           ]
-
-    mkCost Nothing   (Just ik) (Just kj) = [ik+kj]
-    mkCost (Just ij) (Just ik) (Just kj) = [min ij (ik+kj)]
-    mkCost (Just ij) _ _ = [ij]
-    mkCost Nothing _ _ = []
-
-    addGen acc k = MapStrict.fromList
-      [ ((i,j), cost)
-        | i <- ks
-        , j <- ks
-        , cost <- mkCost (Map.lookup (i,j) acc)
-                         (Map.lookup (i,k) acc)
-                         (Map.lookup (k,j) acc)
         ]
