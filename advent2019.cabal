@@ -175,7 +175,7 @@ executable Day23
 executable Day24
   import:              day
   main-is:             Day24.hs
-  build-depends:       base, containers
+  build-depends:       containers
 
 executable Day25
   import:              day, intcode

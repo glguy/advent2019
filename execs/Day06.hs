@@ -1,4 +1,4 @@
-{-# Language OverloadedStrings #-}
+{-# Language ImportQualifiedPost, OverloadedStrings #-}
 {-|
 Module      : Main
 Description : Day 6 solution
@@ -11,11 +11,9 @@ Maintainer  : emertens@gmail.com
 -}
 module Main (main) where
 
-import           Advent
-import           Control.Applicative
-import           Data.List
-import           Data.Map (Map)
-import qualified Data.Map as Map
+import Advent (Parser, getParsedLines, satisfy)
+import Control.Applicative (many)
+import Data.Map qualified as Map
 
 parseName :: Parser String
 parseName = many (satisfy (')'/=))
@@ -26,21 +24,15 @@ parseOrbit = (,) <$> parseName <* ")" <*> parseName
 main :: IO ()
 main =
   do inp <- getParsedLines 6 parseOrbit
+     let paths = Map.fromList [(y,x:Map.findWithDefault [] x paths) | (x,y) <- inp]
+     print (sum (length <$> paths))
 
-     let orbits = Map.fromList [ (y,x) | (x,y) <- inp]
+     -- routes from COM leading to YOU and SAN
+     let t1 = reverse (paths Map.! "YOU")
+         t2 = reverse (paths Map.! "SAN")
+     print (part2 t1 t2)
 
-     print $ sum [ length (path orbits i) | (_,i) <- inp ]
-
-     let you    = orbits Map.! "YOU"
-         san    = orbits Map.! "SAN"
-         t1     = path orbits you
-         t2     = path orbits san
-         common = intersect t1 t2
-
-     print (length t1 + length t2 - 2 * length common)
-
-path :: Ord a => Map a a -> a -> [a]
-path m i =
-  case Map.lookup i m of
-    Nothing -> []
-    Just j  -> i : path m j
+-- remove the common prefix and then return the length of the remainder
+part2 :: Eq a => [a] -> [a] -> Int
+part2 (x:xs) (y:ys) | x == y = part2 xs ys
+part2 xs     ys              = length xs + length ys
