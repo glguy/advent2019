@@ -1,4 +1,4 @@
-{-# Language RankNTypes, OverloadedStrings #-}
+{-# Language RankNTypes, OverloadedStrings, ViewPatterns #-}
 {-|
 Module      : Main
 Description : Day 22 solution
@@ -37,12 +37,12 @@ Maintainer  : emertens@gmail.com
 -}
 module Main (main) where
 
-import Advent                         (Parser, getParsedLines, number)
-import Control.Applicative            ((<|>))
-import Data.Semigroup                 (stimes)
-import GHC.Natural                    (Natural)
-import GHC.TypeNats                   (KnownNat, SomeNat(..), someNatVal)
-import Math.NumberTheory.Moduli.Class (Mod, getNatVal)
+import Advent              (Parser, getParsedLines, number)
+import Control.Applicative ((<|>))
+import Data.Semigroup      (stimes)
+import GHC.Natural         (Natural)
+import GHC.TypeNats        (KnownNat, SomeNat(..), someNatVal)
+import Data.Mod            (Mod, unMod)
 
 ------------------------------------------------------------------------
 -- Parsing
@@ -124,9 +124,7 @@ main =
 withModulus ::
   (forall n. KnownNat n => LinearFn (Mod n)) ->
   Natural -> Natural -> Natural
-f `withModulus` modulus =
-  case someNatVal modulus of
-    SomeNat p -> getNatVal . asMod p . apply f . fromIntegral
+f `withModulus` (someNatVal -> SomeNat m) = unMod . asMod m . apply f . fromIntegral
 
 asMod :: proxy n -> Mod n -> Mod n
 asMod _ x = x

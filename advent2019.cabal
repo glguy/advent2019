@@ -165,7 +165,7 @@ executable Day21
 executable Day22
   import:              day
   main-is:             Day22.hs
-  build-depends:       arithmoi
+  build-depends:       mod
 
 executable Day23
   import:              day, intcode
