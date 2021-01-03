@@ -1,4 +1,4 @@
-{-# Language OverloadedStrings #-}
+{-# Language OverloadedStrings, NumericUnderscores #-}
 {-|
 Module      : Main
 Description : Day 14 solution
@@ -18,10 +18,10 @@ import           Data.Map (Map)
 import qualified Data.Map as Map
 import           Data.Char (isAlpha)
 
-data Recipes = Recipes
-  { order :: [String]
-  , parts :: Map String (Int, [(Int, String)])
-  }
+p2ore :: Int
+p2ore = 1_000_000_000_000
+
+-- Input file parser ---------------------------------------------------
 
 type Reaction = ([Component], Component)
 type Component = (Int, String)
@@ -38,70 +38,51 @@ parseItems = parseItem `sepBy` ", "
 parseReaction :: Parser Reaction
 parseReaction = (,) <$> parseItems <* " => " <*> parseItem
 
+------------------------------------------------------------------------
+
 main :: IO ()
 main =
   do inp <- getParsedLines 14 parseReaction
-     let recipes = mkRecipes inp
+     let recipes = arrange inp
 
      print (oreNeeded recipes 1)
 
-     let p i = oreNeeded recipes i <= 1000000000000
-     print (expSearch p 1)
+     let optimal = optimalOrePerFuel recipes
+     print $ until (\i -> oreNeeded recipes i <= p2ore) (subtract 1)
+           $ truncate (fromIntegral p2ore / optimal)
 
-oreNeeded :: Recipes -> Int {- ^ fuel amount -} -> Int {- ^ ore amount -}
+optimalOrePerFuel :: [Reaction] -> Rational
+optimalOrePerFuel r = orePerThing Map.! "FUEL"
+  where
+    orePerThing = Map.insert "ORE" 1 (Map.fromList [(c, aux b a) | (a,(b,c)) <- r])
+    aux n needs = sum [fromIntegral m * orePerThing Map.! thing | (m,thing) <- needs]
+                / fromIntegral n
+
+oreNeeded :: [Reaction] -> Int {- ^ fuel amount -} -> Int {- ^ ore amount -}
 oreNeeded recipes n =
-  foldl' (react (parts recipes)) (Map.singleton "FUEL" n) (order recipes) Map.! "ORE"
+  foldl' react (Map.singleton "FUEL" n) recipes Map.! "ORE"
 
 react ::
-  Map String (Int, [(Int, String)])    ->
   Map String Int {- ^ items needed  -} ->
-  String         {- ^ item to react -} ->
+  Reaction       {- ^ item to react -} ->
   Map String Int {- ^ items needed  -}
-react recipes need item = Map.unionWith (+) need1 need2
+react need (needs, (makes, item)) = Map.unionWith (+) need1 need2
   where
     needed = Map.findWithDefault 0 item need
 
-    (makes, needs) = recipes Map.! item
     n = needed `divUp` makes
 
     need1 = Map.delete item need
-    need2 = Map.fromListWith (+) [ (k,n*v) | (v,k) <- needs ]
+    need2 = Map.fromListWith (+) [(k,n*v) | (v,k) <- needs]
+
+arrange :: [Reaction] -> [Reaction]
+arrange xs = sortOn (negate . depth . snd . snd) xs
+  where
+    partsMap       = Map.fromList [ (dst, (n, src))  | (src,(n,dst)) <- xs ]
+    toDepth (_,ys) = foldl' max (-1) [depth y | (_,y) <- ys] + 1
+    depthMap       = Map.insert "ORE" (0 :: Integer) (toDepth <$> partsMap)
+    depth          = (depthMap Map.!)
 
 -- | Integer division that rounds up instead of down.
 divUp :: Integral a => a -> a -> a
 x `divUp` y = (x + y - 1) `div` y
-
-mkRecipes :: [Reaction] -> Recipes
-mkRecipes xs = Recipes
-  { order = sortOn depth [n | (_, (_,n)) <- xs ]
-  , parts = partsMap
-  }
-  where
-    partsMap       = Map.fromList [ (dst, (n, src))  | (src,(n,dst)) <- xs ]
-    toDepth (_,ys) = foldl' min 0 [ depth y | (_,y) <- ys ] - 1
-    depthMap       = fmap toDepth partsMap
-    depth x        = Map.findWithDefault (0::Int) x depthMap
-
-------------------------------------------------------------------------
-
-expSearch ::
-  (Int -> Bool) {- ^ predicate        -} ->
-  Int           {- ^ small enough     -} ->
-  Int           {- ^ largest possible -}
-expSearch p lo = go (lo+1)
-  where
-    go hi
-      | p hi      = go (2*hi)
-      | otherwise = binSearch p lo hi
-
-binSearch ::
-  (Int -> Bool) {- ^ predicate    -} ->
-  Int           {- ^ small enough -} ->
-  Int           {- ^ too big      -} ->
-  Int
-binSearch p lo hi
-  | lo + 1 == hi = lo
-  | p mid        = binSearch p mid hi
-  | otherwise    = binSearch p lo mid
-  where
-    mid = lo + (hi - lo) `div` 2

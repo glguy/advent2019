@@ -85,10 +85,11 @@ data LinearFn a = LinearFn !a !a
   deriving Show
 
 apply :: Num a => LinearFn a -> a -> a
-apply (LinearFn a b) x = a * x + b
+apply (LinearFn a b) = \x -> a * x + b
 
 invert :: Fractional a => LinearFn a -> LinearFn a
-invert (LinearFn a b) = LinearFn (1/a) (-b/a)
+invert (LinearFn a b) = LinearFn a' (-b*a')
+  where a' = recip a
 
 -- | Reverse-composition of linear functions
 --
