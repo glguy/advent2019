@@ -60,11 +60,10 @@ graycode ::
   (a -> a) {- inverse action      -} ->
   [a]      {- items               -} ->
   [a]      {- search instructions -}
-graycode tick _  _  [] = [tick]
-graycode tick f1 f2 (x:xs) =
-  graycode tick f1 f2 xs ++
-  [f1 x] ++
-  reverse (graycode tick f2 f1 xs)
+graycode tick f1 f2 xs = foldr step base xs f1 []
+  where
+    base      = \_ -> (tick:)
+    step x go = \f -> go f1 . (f x :) . go f2
 
 items :: [String]
 items =
